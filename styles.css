@@ -43,12 +43,17 @@ form {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.page h2 {
+h2 {
     color: #333;
     font-size: 20px;
     margin-bottom: 20px;
+    margin-top: 30px;
     padding-bottom: 10px;
     border-bottom: 2px solid #f0f0f0;
+}
+
+h2:first-of-type {
+    margin-top: 0;
 }
 
 .info-box {
@@ -158,26 +163,11 @@ form {
     background-color: #e8eaed;
 }
 
-.button-group {
-    display: flex;
-    justify-content: flex-start;
+.btn-submit {
     margin-top: 30px;
+    width: 100%;
 }
 
-.progress-bar {
-    height: 4px;
-    background-color: #e0e0e0;
-    border-radius: 2px;
-    margin-top: 20px;
-    overflow: hidden;
-}
-
-.progress {
-    height: 100%;
-    background-color: #1a73e8;
-    transition: width 0.3s ease;
-    width: 50%;
-}
 
 .error {
     border-color: #d93025 !important;

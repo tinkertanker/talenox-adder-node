@@ -1,31 +1,6 @@
-let currentPage = 1;
-
-function updateProgressBar() {
-    const progressBar = document.getElementById('progressBar');
-    progressBar.style.width = currentPage === 1 ? '50%' : '100%';
-}
-
-function nextPage() {
-    if (validatePage1()) {
-        document.getElementById('page1').style.display = 'none';
-        document.getElementById('page2').style.display = 'block';
-        currentPage = 2;
-        updateProgressBar();
-        window.scrollTo(0, 0);
-    }
-}
-
-function prevPage() {
-    document.getElementById('page2').style.display = 'none';
-    document.getElementById('page1').style.display = 'block';
-    currentPage = 1;
-    updateProgressBar();
-    window.scrollTo(0, 0);
-}
-
-function validatePage1() {
+function validateForm() {
     let isValid = true;
-    const requiredFields = ['fullName', 'email', 'employeeId'];
+    const requiredFields = ['fullName', 'email', 'employeeId', 'dob', 'bank', 'accountName', 'accountNumber'];
     const checkboxes = ['understandLastName', 'fillEverything', 'completedTalenox'];
     
     clearErrors();
@@ -56,23 +31,6 @@ function validatePage1() {
         if (!checkbox.checked) {
             const label = checkbox.parentElement;
             label.style.color = '#d93025';
-            isValid = false;
-        }
-    });
-    
-    return isValid;
-}
-
-function validatePage2() {
-    let isValid = true;
-    const requiredFields = ['dob', 'bank', 'accountName', 'accountNumber'];
-    
-    clearErrors();
-    
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            showError(field, 'This field is required');
             isValid = false;
         }
     });
@@ -121,7 +79,7 @@ document.getElementById('eligibleWork').addEventListener('change', function() {
 document.getElementById('onboardingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    if (!validatePage2()) {
+    if (!validateForm()) {
         return;
     }
     
@@ -136,5 +94,3 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     
     alert('Form submitted successfully! In a real implementation, this would send data to your server.');
 });
-
-updateProgressBar();
