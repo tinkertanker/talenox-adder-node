@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinkertanker Freelancer Onboarding</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Tinkertanker Onboarding: Personal Particulars</h1>
+            <p>Welcome to Tinkertanker. We'll collect your information to get you paid.</p>
+        </div>
+
+        <form id="onboardingForm">
+            <div class="page" id="page1">
+                <h2>Page 1: Initial Information</h2>
+                
+                <div class="info-box">
+                    <h3>Important Instructions:</h3>
+                    <ul>
+                        <li>You'll receive a Talenox invitation via email - check spam folder if needed</li>
+                        <li>Leave "Last Name" blank in Talenox</li>
+                        <li>Put your FULL legal name in the "First Name" field</li>
+                        <li>Passport details are optional for Singapore Citizens/PRs</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label for="fullName">Full Legal Name *</label>
+                    <input type="text" id="fullName" name="fullName" required>
+                    <small>e.g., John Tan Ah Kow</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email for Payroll System *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nric">NRIC Number *</label>
+                    <input type="text" id="nric" name="nric" required>
+                    <small>Or confirm eligibility to work in Singapore</small>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="eligibleWork" name="eligibleWork">
+                        I confirm I am eligible to work in Singapore (Citizen/PR/Valid Work Pass)
+                    </label>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="understandLastName" name="understandLastName" required>
+                        I understand I'll leave "Last Name" blank in Talenox *
+                    </label>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="fillEverything" name="fillEverything" required>
+                        I'll fill out everything in Talenox to avoid payroll delays *
+                    </label>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="completedTalenox" name="completedTalenox" required>
+                        I've completed my Talenox profile *
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeId">Employee ID from Talenox *</label>
+                    <input type="text" id="employeeId" name="employeeId" required>
+                    <small>Note this before proceeding</small>
+                </div>
+
+                <button type="button" class="btn-next" onclick="nextPage()">Next</button>
+            </div>
+
+            <div class="page" id="page2" style="display: none;">
+                <h2>Page 2: Bank Information</h2>
+
+                <div class="form-group">
+                    <label for="dob">Date of Birth *</label>
+                    <input type="date" id="dob" name="dob" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="bank">Bank *</label>
+                    <select id="bank" name="bank" required>
+                        <option value="">Select your bank</option>
+                        <option value="DBS">DBS/POSB</option>
+                        <option value="OCBC">OCBC</option>
+                        <option value="UOB">UOB</option>
+                        <option value="SCB">Standard Chartered</option>
+                        <option value="CITI">Citibank</option>
+                        <option value="HSBC">HSBC</option>
+                        <option value="MAYBANK">Maybank</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="accountName">Name on Account *</label>
+                    <input type="text" id="accountName" name="accountName" required>
+                    <small>Must match exactly as shown on bank account</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="accountNumber">Account Number *</label>
+                    <input type="text" id="accountNumber" name="accountNumber" required>
+                    <small>Omit dashes</small>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn-prev" onclick="prevPage()">Previous</button>
+                    <button type="submit" class="btn-submit">Submit</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="progress-bar">
+            <div class="progress" id="progressBar"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
