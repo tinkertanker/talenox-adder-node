@@ -14,14 +14,17 @@
         </div>
 
         <form id="onboardingForm">
-            <div class="info-box">
-                <h3>Important Instructions:</h3>
-                <ul>
-                    <li>You'll receive a Talenox invitation via email - check spam folder if needed</li>
-                    <li>Leave "Last Name" blank in Talenox</li>
-                    <li>Put your FULL legal name in the "First Name" field</li>
-                    <li>Passport details are optional for Singapore Citizens/PRs</li>
-                </ul>
+            <h2>Employee Type</h2>
+            
+            <div class="form-group">
+                <label for="employeeType">Select Employee Type *</label>
+                <select id="employeeType" name="employeeType" required>
+                    <option value="">Select type</option>
+                    <option value="trainer">Freelance Trainer</option>
+                    <option value="intern_school">Intern with School Letter</option>
+                    <option value="intern_no_school">Intern without School Letter</option>
+                    <option value="fulltime">Full-time Employee</option>
+                </select>
             </div>
 
             <h2>Personal Information</h2>
@@ -38,21 +41,43 @@
             </div>
 
             <div class="form-group">
-                <label for="nric">NRIC Number *</label>
+                <label for="nric">NRIC/FIN Number *</label>
                 <input type="text" id="nric" name="nric" required>
-                <small>Or confirm eligibility to work in Singapore</small>
+                <small>Singapore NRIC or FIN number</small>
             </div>
 
-            <div class="form-group checkbox-group">
-                <label>
-                    <input type="checkbox" id="eligibleWork" name="eligibleWork">
-                    I confirm I am eligible to work in Singapore (Citizen/PR/Valid Work Pass)
-                </label>
+            <div class="form-group">
+                <label for="nationality">Nationality *</label>
+                <select id="nationality" name="nationality" required>
+                    <option value="">Select nationality</option>
+                    <option value="sg_citizen">Singapore Citizen</option>
+                    <option value="sg_pr">Singapore PR</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label for="dob">Date of Birth *</label>
                 <input type="date" id="dob" name="dob" required>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Gender *</label>
+                <select id="gender" name="gender" required>
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="startDateGroup" style="display:none;">
+                <label for="startDate">Start Date *</label>
+                <input type="date" id="startDate" name="startDate">
+            </div>
+
+            <div class="form-group" id="endDateGroup" style="display:none;">
+                <label for="endDate">End Date *</label>
+                <input type="date" id="endDate" name="endDate">
             </div>
 
             <h2>Bank Information</h2>
@@ -86,6 +111,24 @@
 
             <button type="submit" class="btn-submit">Submit</button>
         </form>
+        
+        <div id="successMessage" style="display:none;">
+            <div class="header">
+                <h1>Thank You!</h1>
+                <p>Your information has been submitted successfully.</p>
+            </div>
+            
+            <div class="info-box">
+                <h3>Next Steps - Important!</h3>
+                <ul>
+                    <li>You'll receive an email from Talenox shortly - please check your spam folder if needed</li>
+                    <li>When you log in to Talenox to update your information:</li>
+                    <li style="margin-left: 20px;"><strong>Leave the "Last Name" field blank</strong></li>
+                    <li style="margin-left: 20px;"><strong>Your full name should remain in the "First Name" field</strong></li>
+                    <li>Complete any additional information requested in Talenox</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

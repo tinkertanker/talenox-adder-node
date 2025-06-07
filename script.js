@@ -1,6 +1,6 @@
 function validateForm() {
     let isValid = true;
-    const requiredFields = ['fullName', 'email', 'dob', 'bank', 'accountName', 'accountNumber'];
+    const requiredFields = ['employeeType', 'fullName', 'email', 'nationality', 'dob', 'gender', 'bank', 'accountName', 'accountNumber'];
     const checkboxes = [];
     
     clearErrors();
@@ -20,9 +20,8 @@ function validateForm() {
     }
     
     const nricField = document.getElementById('nric');
-    const eligibleCheckbox = document.getElementById('eligibleWork');
-    if (!nricField.value.trim() && !eligibleCheckbox.checked) {
-        showError(nricField, 'Please provide NRIC or confirm eligibility');
+    if (!nricField.value.trim()) {
+        showError(nricField, 'Please provide NRIC/FIN number');
         isValid = false;
     }
     
@@ -39,6 +38,27 @@ function validateForm() {
     if (accountNumber && !/^\d+$/.test(accountNumber)) {
         showError(document.getElementById('accountNumber'), 'Account number must contain only digits');
         isValid = false;
+    }
+    
+    // Validate date fields based on employee type
+    const employeeType = document.getElementById('employeeType').value;
+    if (employeeType === 'intern_school' || employeeType === 'intern_no_school') {
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        if (!startDate.value) {
+            showError(startDate, 'Start date is required for interns');
+            isValid = false;
+        }
+        if (!endDate.value) {
+            showError(endDate, 'End date is required for interns');
+            isValid = false;
+        }
+    } else if (employeeType === 'fulltime') {
+        const startDate = document.getElementById('startDate');
+        if (!startDate.value) {
+            showError(startDate, 'Start date is required for full-time employees');
+            isValid = false;
+        }
     }
     
     return isValid;
@@ -62,17 +82,36 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-document.getElementById('eligibleWork').addEventListener('change', function() {
-    const nricField = document.getElementById('nric');
-    if (this.checked) {
-        nricField.removeAttribute('required');
-        nricField.value = '';
-        nricField.disabled = true;
-        nricField.style.backgroundColor = '#f5f5f5';
-    } else {
-        nricField.setAttribute('required', 'true');
-        nricField.disabled = false;
-        nricField.style.backgroundColor = '';
+// Handle employee type changes
+document.getElementById('employeeType').addEventListener('change', function() {
+    const startDateGroup = document.getElementById('startDateGroup');
+    const endDateGroup = document.getElementById('endDateGroup');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    
+    // Reset fields
+    startDateGroup.style.display = 'none';
+    endDateGroup.style.display = 'none';
+    startDate.removeAttribute('required');
+    endDate.removeAttribute('required');
+    
+    switch(this.value) {
+        case 'trainer':
+            // Trainers don't fill dates, we auto-fill 1st of last month
+            break;
+        case 'intern_school':
+        case 'intern_no_school':
+            // Interns need both start and end dates
+            startDateGroup.style.display = 'block';
+            endDateGroup.style.display = 'block';
+            startDate.setAttribute('required', 'true');
+            endDate.setAttribute('required', 'true');
+            break;
+        case 'fulltime':
+            // Full-timers only need start date
+            startDateGroup.style.display = 'block';
+            startDate.setAttribute('required', 'true');
+            break;
     }
 });
 
@@ -90,7 +129,55 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
         data[key] = value;
     }
     
-    console.log('Form Data:', data);
+    // Add computed fields based on employee type
+    const employeeType = data.employeeType;
     
-    alert('Form submitted successfully! In a real implementation, this would send data to your server.');
+    // Set immigration status
+    if (employeeType === 'trainer' || employeeType === 'intern_school') {
+        data.immigrationStatus = 'Contract (No CPF, No SDL)';
+    } else if (employeeType === 'intern_no_school' || employeeType === 'fulltime') {
+        if (data.nationality === 'sg_citizen') {
+            data.immigrationStatus = 'Singapore Citizen';
+        } else if (data.nationality === 'sg_pr') {
+            data.immigrationStatus = 'Singapore PR';
+        } else {
+            data.immigrationStatus = 'Work Pass Holder';
+        }
+    }
+    
+    // Set job title
+    if (employeeType === 'trainer') {
+        data.jobTitle = 'Freelance Trainer';
+    } else if (employeeType === 'intern_school' || employeeType === 'intern_no_school') {
+        data.jobTitle = 'Tinkertanker Intern';
+    }
+    
+    // Set dates for trainers
+    if (employeeType === 'trainer') {
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        lastMonth.setDate(1);
+        data.startDate = lastMonth.toISOString().split('T')[0];
+    }
+    
+    // Set basic salary (0 for freelancers)
+    if (employeeType === 'trainer') {
+        data.basicSalary = 0;
+    }
+    
+    // Determine SHG requirement
+    if (employeeType === 'intern_no_school' || employeeType === 'fulltime') {
+        data.requiresSHG = true;
+    } else {
+        data.requiresSHG = false;
+    }
+    
+    console.log('Form Data with computed fields:', data);
+    
+    // Hide form and show success message
+    document.getElementById('onboardingForm').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'block';
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
 });
