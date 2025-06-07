@@ -108,39 +108,147 @@ The form collects and computes the following fields:
    - Freelancers: Basic salary = 0
    - Others: To be determined by HR
 
-## Setup
+## Setup & Deployment
 
-1. Clone the repository
-2. Serve the files using any web server
-3. Access `index.html` in a web browser
+### Local Development
 
-## Next Steps
+```bash
+# Clone the repository
+git clone [repository-url]
+cd freelancer-adder
 
-1. **Backend Development**
-   - Create server to handle form submissions
-   - Implement secure data storage
-   - Add validation and error handling
+# Install dependencies
+npm install
 
-2. **Talenox API Integration**
-   - Obtain API credentials
-   - Implement employee creation endpoint
-   - Handle API responses and errors
+# Create environment file
+cp .env.example .env
+# Edit .env with your Talenox API credentials
 
-3. **Security & Compliance**
-   - Implement HTTPS
-   - Add PDPA compliance measures
-   - Secure handling of NRIC/FIN numbers
-   - Encrypt sensitive data
+# Run locally with Netlify Dev
+npm run dev
+# Visit http://localhost:8888
+```
 
-4. **Testing**
-   - Test with Talenox sandbox
-   - Validate all employee type scenarios
-   - User acceptance testing
+### Deploy to Production
 
-## Files
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Deploy onboarding form"
+   git push origin main
+   ```
 
-- `index.html` - Main form interface
-- `styles.css` - Styling with black/salmon theme
-- `script.js` - Form logic and validation
-- `logo.png` - Tinkercademy logo
-- `CLAUDE.md` - Development notes and requirements
+2. **Deploy on Netlify**
+   - Sign up/login at [netlify.com](https://netlify.com)
+   - Click "Add new site" → "Import an existing project"
+   - Connect GitHub and select this repository
+   - Deploy settings are auto-configured via `netlify.toml`
+   - Click "Deploy site"
+
+3. **Configure Environment Variables**
+   In Netlify Dashboard → Site settings → Environment variables:
+   - `TALENOX_API_KEY`: Your Talenox API key
+   - `TALENOX_API_URL`: Talenox API endpoint (e.g., https://api.talenox.com/v1)
+   - `ALLOWED_ORIGINS`: Your production URL (optional)
+
+4. **Test the Deployment**
+   - Form works immediately in demo mode (without API key)
+   - With credentials, it creates real Talenox employees
+   - Check Functions tab in Netlify for logs
+
+## Architecture
+
+### Frontend
+- Static HTML/CSS/JavaScript
+- Rubik font with Tinkercademy branding
+- Black (#000) and salmon (#FA8072) color theme
+- Responsive design
+
+### Backend (Netlify Functions)
+- Serverless function: `submit-onboarding.js`
+- PDPA-compliant data handling
+- Automatic field computation
+- Secure API key storage
+
+### Security Features
+- NRIC/FIN validation and redaction in logs
+- CORS protection
+- Environment variable encryption
+- Input sanitization
+- Error handling without exposing sensitive data
+
+## Project Structure
+
+```
+freelancer-adder/
+├── index.html              # Main form interface
+├── styles.css              # Styling with black/salmon theme
+├── script.js               # Form logic and validation
+├── logo.png                # Tinkercademy logo
+├── netlify.toml            # Netlify configuration
+├── package.json            # Node.js dependencies
+├── .env.example            # Environment variables template
+├── netlify/
+│   └── functions/
+│       └── submit-onboarding.js  # Serverless API handler
+├── README.md               # This file
+└── CLAUDE.md               # Development notes
+```
+
+## API Response Format
+
+### Success Response
+```json
+{
+  "success": true,
+  "message": "Employee created successfully",
+  "employeeId": "EMP-12345"
+}
+```
+
+### Error Response
+```json
+{
+  "error": "Validation failed",
+  "details": ["Start date is required for interns"]
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Method not allowed" error**
+   - Ensure you're using POST method
+   - Check CORS configuration
+
+2. **"Validation failed" errors**
+   - Check all required fields are filled
+   - Verify NRIC/FIN format (e.g., S1234567D)
+   - Ensure dates are logical (end > start)
+
+3. **"Internal server error"**
+   - Check Netlify Function logs
+   - Verify environment variables are set
+   - Ensure Talenox API is accessible
+
+### Debug Mode
+
+The form works without Talenox credentials for testing:
+- Validates all inputs
+- Returns demo employee ID
+- Logs would-be API payload
+
+## Contributing
+
+1. Create a feature branch
+2. Make changes and test locally
+3. Ensure PDPA compliance for any data handling
+4. Submit pull request with description
+
+## Support
+
+For issues or questions:
+- Check Netlify Function logs
+- Review error messages in browser console
+- Contact the development team
