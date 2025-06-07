@@ -149,7 +149,7 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     if (employeeType === 'trainer') {
         data.jobTitle = 'Freelance Trainer';
     } else if (employeeType === 'intern_school' || employeeType === 'intern_no_school') {
-        data.jobTitle = 'Tinkertanker Intern';
+        data.jobTitle = 'Tinkercademy Intern';
     }
     
     // Set dates for trainers

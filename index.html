@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tinkertanker Freelancer Onboarding</title>
+    <title>Tinkercademy Freelancer Onboarding</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Tinkertanker Onboarding: Personal Particulars</h1>
-            <p>Welcome to Tinkertanker. We'll collect your information to get you paid.</p>
+            <img src="logo.png" alt="Tinkercademy Logo" class="logo">
+            <h1>Onboarding: Personal Particulars</h1>
+            <p>Welcome to Tinkercademy. We'll collect your information to get you paid.</p>
         </div>
 
         <form id="onboardingForm">
@@ -112,8 +116,9 @@
             <button type="submit" class="btn-submit">Submit</button>
         </form>
         
-        <div id="successMessage" style="display:none;">
+        <div id="successMessage" class="success-container" style="display:none;">
             <div class="header">
+                <img src="logo.png" alt="Tinkercademy Logo" class="logo">
                 <h1>Thank You!</h1>
                 <p>Your information has been submitted successfully.</p>
             </div>

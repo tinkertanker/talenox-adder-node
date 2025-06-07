@@ -1,14 +1,14 @@
 # Freelancer Adder - Talenox Integration Project
 
 ## Project Overview
-This project creates a simplified onboarding form for Tinkertanker freelancers that integrates with the Talenox API to automate employee data entry.
+This project creates a simplified onboarding form for Tinkercademy freelancers that integrates with the Talenox API to automate employee data entry.
 
 ## Current State
 - **Completed**: Basic front-end form with two pages collecting freelancer information
 - **TODO**: Integrate with Talenox API to automatically create employee records
 
 ## Business Context
-Tinkertanker currently uses a two-step process for freelancer onboarding:
+Tinkercademy currently uses a two-step process for freelancer onboarding:
 1. Freelancers receive a Talenox invitation email to fill out their profile
 2. Freelancers submit bank details via Google Forms
 
