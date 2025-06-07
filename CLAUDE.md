@@ -19,7 +19,6 @@ This project aims to streamline this into a single form that automatically popul
    - Full legal name
    - Email for payroll system
    - NRIC number (or work eligibility confirmation)
-   - Employee ID from Talenox
    - Date of birth
    - Bank details (bank name, account name, account number)
 
