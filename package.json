@@ -1,0 +1,20 @@
+{
+  "name": "tinkercademy-onboarding",
+  "version": "1.0.0",
+  "description": "Employee onboarding form with Talenox integration",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "onboarding",
+    "talenox",
+    "tinkercademy"
+  ],
+  "author": "Tinkercademy",
+  "license": "MIT",
+  "devDependencies": {
+    "netlify-cli": "^17.10.1"
+  }
+}
