@@ -1,57 +1,70 @@
-# Freelancer Adder - Talenox Integration Project
+# Tinkercademy Employee Onboarding - Development Notes
 
 ## Project Overview
-This project creates a simplified onboarding form for Tinkercademy freelancers that integrates with the Talenox API to automate employee data entry.
+This project creates a simplified onboarding form for Tinkercademy employees that integrates with the Talenox API to automate employee data entry.
 
-## Current State
-- **Completed**: Basic front-end form with two pages collecting freelancer information
-- **TODO**: Integrate with Talenox API to automatically create employee records
+## Current Status (Updated)
 
-## Business Context
-Tinkercademy currently uses a two-step process for freelancer onboarding:
-1. Freelancers receive a Talenox invitation email to fill out their profile
-2. Freelancers submit bank details via Google Forms
+### Completed ✅
+- Single-page form with dynamic fields based on employee type
+- Employee type selection (Trainer, Intern with/without school letter, Full-time)
+- Personal information collection (name, email, NRIC/FIN, nationality, DOB, gender)
+- Conditional date fields based on employee type
+- Bank information collection
+- Automatic computation of Talenox fields:
+  - Immigration status based on employee type and nationality
+  - Job titles
+  - Employment dates (auto-fill for trainers)
+  - Basic salary (0 for freelancers)
+  - SHG requirements
+- Post-submission instructions for Talenox
+- Tinkercademy branding with black/salmon theme
+- Rubik font integration
 
-This project aims to streamline this into a single form that automatically populates Talenox.
+### TODO 🚧
+- Backend service for form submission
+- Talenox API integration
+- Data validation and error handling
+- Security measures for sensitive data
+- Testing with Talenox sandbox
 
-## Key Requirements
-1. Collect essential freelancer information:
-   - Full legal name
-   - Email for payroll system
-   - NRIC number (or work eligibility confirmation)
-   - Date of birth
-   - Bank details (bank name, account name, account number)
+## Technical Implementation
 
-2. Integrate with Talenox API to:
-   - Create new employee records
-   - Populate required fields automatically
-   - Handle Singapore-specific requirements (SHG contributions, immigration status, etc.)
+### Form Logic
+The form uses vanilla JavaScript to:
+1. Show/hide date fields based on employee type
+2. Validate all required fields
+3. Compute Talenox-specific fields automatically
+4. Display success message with instructions
 
-## Talenox Specific Notes
-- **First Name**: Should contain the full legal name (e.g., "John Tan Ah Kow")
-- **Last Name**: Must be left blank (Talenox requirement)
-- **Immigration Status**: Set based on NRIC/work eligibility
-- **Required Fields**: Basic salary, hired date, job details, identification number
+### Employee Type Rules
+- **Trainers**: No date input needed (auto-filled as 1st of last month)
+- **Interns**: Require both start and end dates
+- **Full-timers**: Require only start date
 
-## Technical Stack
-- Frontend: HTML, CSS, JavaScript (vanilla)
-- Backend: TBD - needs to handle Talenox API integration
-- API: Talenox API (documentation needed)
+### Talenox Field Mapping
+- First Name: Full legal name (Last Name left blank)
+- Immigration Status: Computed based on type and nationality
+- Job Title: "Freelance Trainer" or "Tinkercademy Intern"
+- Dates: Hired/resign dates match job start/end dates
+- Basic Salary: 0 for freelancers
 
-## Next Steps
-1. Obtain Talenox API credentials and documentation
-2. Create backend service to handle form submissions
-3. Implement Talenox API integration
-4. Add error handling and validation
-5. Test with real Talenox sandbox environment
+## Development Guidelines
 
-## Important Considerations
-- PDPA compliance for NRIC collection
-- Secure handling of sensitive personal and banking information
-- Validation of Singapore-specific formats (NRIC, bank accounts)
-- Handle different employee types (contractors vs full-time)
+### When Adding Features
+1. Maintain the single-page form structure
+2. Follow existing validation patterns
+3. Update computed fields logic as needed
+4. Test all employee type scenarios
 
-## Files
-- `index.html` - Main form interface
-- `styles.css` - Form styling
-- `script.js` - Form validation and client-side logic
+### API Integration Considerations
+- Secure credential storage
+- Error handling for API failures
+- Data validation before submission
+- Logging for troubleshooting
+
+## Important Notes
+- NRIC/FIN handling must comply with PDPA
+- Bank account validation should check format only
+- All dates use ISO format (YYYY-MM-DD)
+- Form data structure is documented in README.md
