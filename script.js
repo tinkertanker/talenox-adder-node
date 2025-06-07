@@ -1,7 +1,7 @@
 function validateForm() {
     let isValid = true;
     const requiredFields = ['fullName', 'email', 'dob', 'bank', 'accountName', 'accountNumber'];
-    const checkboxes = ['understandLastName', 'fillEverything', 'completedTalenox'];
+    const checkboxes = [];
     
     clearErrors();
     
