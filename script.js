@@ -115,6 +115,47 @@ document.getElementById('employeeType').addEventListener('change', function() {
     }
 });
 
+async function submitToNetlify(data) {
+    // Show loading state
+    const submitButton = document.querySelector('.btn-submit');
+    const originalText = submitButton.textContent;
+    submitButton.textContent = 'Submitting...';
+    submitButton.disabled = true;
+    
+    try {
+        const response = await fetch('/.netlify/functions/submit-onboarding', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Submission failed');
+        }
+        
+        // Success - hide form and show success message
+        document.getElementById('onboardingForm').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'block';
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+        
+    } catch (error) {
+        console.error('Submission error:', error);
+        
+        // Show error message
+        alert('Error submitting form: ' + error.message + '\n\nPlease try again or contact support.');
+        
+        // Reset button
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+    }
+}
+
 document.getElementById('onboardingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -174,10 +215,6 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     
     console.log('Form Data with computed fields:', data);
     
-    // Hide form and show success message
-    document.getElementById('onboardingForm').style.display = 'none';
-    document.getElementById('successMessage').style.display = 'block';
-    
-    // Scroll to top
-    window.scrollTo(0, 0);
+    // Submit to Netlify Function
+    submitToNetlify(data);
 });
