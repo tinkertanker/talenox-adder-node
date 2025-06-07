@@ -199,6 +199,11 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         lastMonth.setDate(1);
         data.startDate = lastMonth.toISOString().split('T')[0];
+        
+        // Set end date as the day after start date
+        const endDate = new Date(lastMonth);
+        endDate.setDate(endDate.getDate() + 1);
+        data.endDate = endDate.toISOString().split('T')[0];
     }
     
     // Set basic salary (0 for freelancers)

@@ -78,11 +78,20 @@ const transformForTalenox = (formData) => {
   
   // For trainers, calculate 1st of last month if no start date provided
   let hiredDate = formData.startDate;
-  if (formData.employeeType === 'trainer' && !hiredDate) {
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    lastMonth.setDate(1);
-    hiredDate = lastMonth.toISOString().split('T')[0];
+  let resignDate = formData.endDate;
+  
+  if (formData.employeeType === 'trainer') {
+    if (!hiredDate) {
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+      lastMonth.setDate(1);
+      hiredDate = lastMonth.toISOString().split('T')[0];
+    }
+    
+    // Always set resign date as day after hired date for trainers
+    const endDate = new Date(hiredDate);
+    endDate.setDate(endDate.getDate() + 1);
+    resignDate = endDate.toISOString().split('T')[0];
   }
   
   return {
@@ -98,7 +107,7 @@ const transformForTalenox = (formData) => {
     // Employment Information
     immigration_status: formData.immigrationStatus,
     hired_date: hiredDate,
-    resign_date: formData.endDate || null,
+    resign_date: resignDate || null,
     job_title: formData.jobTitle,
     basic_salary: formData.basicSalary || 0,
     

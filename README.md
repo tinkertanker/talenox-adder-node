@@ -46,7 +46,7 @@ Based on employee type, the system automatically determines:
 - **Job Title**
   - "Freelance Trainer" or "Tinkercademy Intern"
 - **Employment Dates**
-  - Trainers: Auto-filled as 1st of previous month
+  - Trainers: Auto-filled (start: 1st of previous month, end: 2nd of previous month)
   - Interns: User-specified start and end dates
   - Full-timers: User-specified start date only
 - **SHG Requirements**

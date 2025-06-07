@@ -76,7 +76,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 6. Display result to user
 
 ### Employee Type Rules
-- **Trainers**: No date input needed (auto-filled as 1st of last month)
+- **Trainers**: No date input needed (auto-filled: start = 1st of last month, end = 2nd of last month)
 - **Interns**: Require both start and end dates
 - **Full-timers**: Require only start date
 
