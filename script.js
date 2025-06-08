@@ -84,10 +84,22 @@ function isValidEmail(email) {
 
 // Handle employee type changes
 document.getElementById('employeeType').addEventListener('change', function() {
+    const formDetails = document.getElementById('formDetails');
     const startDateGroup = document.getElementById('startDateGroup');
     const endDateGroup = document.getElementById('endDateGroup');
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
+    
+    // Show the rest of the form when employee type is selected
+    if (this.value) {
+        formDetails.style.display = 'block';
+        // Smooth scroll to the newly revealed section
+        setTimeout(() => {
+            formDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    } else {
+        formDetails.style.display = 'none';
+    }
     
     // Reset fields
     startDateGroup.style.display = 'none';
