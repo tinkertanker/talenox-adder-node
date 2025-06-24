@@ -171,7 +171,7 @@ const transformForTalenox = async (formData) => {
   
   // Based on the screenshots, these fields seem to be working:
   // - first_name (showing as "Testing")
-  // - email (showing as "yjsoon@me.com") 
+  // - email (showing as "a@example.com") 
   // - hired_date/resign_date (showing May 1-2, 2025)
   // - gender (showing "Male")
   // - nationality (showing "Singaporean")
