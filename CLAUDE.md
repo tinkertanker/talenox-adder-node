@@ -24,14 +24,14 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Rubik font integration
 - Loading states and error handling
 
-#### Backend (NEW)
+#### Backend (ACTIVE)
 - Netlify Functions serverless architecture
 - Complete form validation with NRIC/FIN format checking
 - PDPA-compliant data handling (sensitive data redaction)
-- Talenox data transformation logic
-- Environment variable configuration
-- CORS and security headers
-- Demo mode (works without API credentials)
+- **Live Talenox API integration** with intelligent field mapping
+- **Auto-incrementing employee ID generation** (queries existing employees)
+- **Banking information integration** using nested object structure
+- Environment variable configuration and security headers
 
 #### Deployment Setup (NEW)
 - Netlify configuration (`netlify.toml`)
@@ -40,16 +40,17 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Comprehensive documentation
 
 ### In Progress 🔄
-- Awaiting Talenox API credentials
-- Ready to integrate once credentials provided
+- Job details field mapping (position/title assignment)
+- User account setup and permissions
 
 ### TODO 🚧
-- **Priority: Add actual Talenox API calls** (structure already in place)
+- **Priority: Complete job details mapping** (position/title assignment)
 - **Priority: Email confirmation system using resend.com**
   - Send confirmation email to employee after successful form submission
   - Send notification email to HR team
   - Include submission details and next steps
-- Test with Talenox sandbox environment
+- User account setup and portal permissions
+- Immigration status field mapping
 - Performance monitoring and error tracking
 
 ## Technical Implementation
@@ -90,24 +91,30 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Interns**: Require both start and end dates
 - **Full-timers**: Require only start date
 
-### Talenox Field Mapping
+### Talenox Field Mapping (WORKING)
 ```javascript
 {
+  // Core fields (✅ Working)
   first_name: formData.fullName,
-  last_name: '', // Always empty per requirement
   email: formData.email,
-  identification_number: formData.nric,
-  date_of_birth: formData.dob,
   gender: formData.gender,
   nationality: mapped_nationality,
-  immigration_status: computed_status,
   hired_date: computed_date,
   resign_date: formData.endDate || null,
-  job_title: computed_title,
-  basic_salary: computed_salary,
-  bank_name: formData.bank,
-  bank_account_name: formData.accountName,
-  bank_account_number: formData.accountNumber
+  birthdate: formData.dob,
+  ssn: formData.nric, // NRIC/FIN identification
+  employee_id: auto_generated_sequential_id, // Auto-increments from 300+
+  
+  // Banking (✅ Working via nested structure)
+  bank_account_attributes: {
+    bank_type: formData.bank,
+    account_name: formData.accountName,
+    number: formData.accountNumber
+  },
+  
+  // Still TODO
+  job_title: computed_title, // Needs mapping
+  immigration_status: computed_status, // Needs mapping
 }
 ```
 

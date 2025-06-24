@@ -212,7 +212,14 @@ const transformForTalenox = async (formData) => {
     employment_start_date: hiredDate,
     employment_end_date: resignDate || null,
     
-    // Banking - try multiple field name variations
+    // Banking information - use structure from Zapier script
+    bank_account_attributes: {
+      bank_type: formData.bank,
+      account_name: formData.accountName,
+      number: formData.accountNumber
+    },
+    
+    // Also try flat field structure as backup
     bank_name: formData.bank,
     bank: formData.bank,
     account_holder_name: formData.accountName,
