@@ -25,6 +25,7 @@ const validateFormData = (data) => {
   if (!data.email) errors.push('Email is required');
   if (!data.nric) errors.push('NRIC/FIN is required');
   if (!data.nationality) errors.push('Nationality is required');
+  if (!data.citizenshipStatus) errors.push('Citizenship status is required');
   if (!data.dob) errors.push('Date of birth is required');
   if (!data.gender) errors.push('Gender is required');
   if (!data.bank) errors.push('Bank is required');
@@ -232,8 +233,8 @@ const getNextEmployeeId = async () => {
 const transformForTalenox = async (formData) => {
   // Nationality is defaulted to Singaporean for all employees
   
-  // Map immigration status based on employee type and nationality
-  const getImmigrationStatus = (employeeType, nationality) => {
+  // Map citizenship status based on employee type and citizenshipStatus
+  const getCitizenshipStatus = (employeeType, citizenshipStatus) => {
     if (employeeType === 'trainer') {
       return 'Contract (No CPF, No SDL)';
     } else if (employeeType === 'intern_school') {
@@ -241,9 +242,9 @@ const transformForTalenox = async (formData) => {
     } else if (employeeType === 'intern_no_school') {
       return 'Intern';
     } else if (employeeType === 'fulltime') {
-      if (nationality === 'sg_citizen') {
+      if (citizenshipStatus === 'sg_citizen') {
         return 'Singapore Citizen';
-      } else if (nationality === 'sg_pr') {
+      } else if (citizenshipStatus === 'sg_pr') {
         return 'Singapore PR';
       } else {
         return 'Singapore Citizen'; // Default for full-timers
@@ -276,15 +277,15 @@ const transformForTalenox = async (formData) => {
     first_name: formData.fullName,
     email: formData.email,
     gender: formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1),
-    nationality: 'Singaporean', // Default to Singaporean for now
+    nationality: formData.nationality || 'Singaporean',
     hired_date: hiredDate,
     resign_date: resignDate || null,
     birthdate: formData.dob,
     ssn: formData.nric,
     employee_id: await getNextEmployeeId(),
     
-    // Immigration status based on employee type and nationality
-    citizenship: getImmigrationStatus(formData.employeeType, formData.nationality),
+    // Citizenship status based on employee type and citizenshipStatus
+    citizenship: getCitizenshipStatus(formData.employeeType, formData.citizenshipStatus),
     
     // Banking information (nested structure)
     bank_account_attributes: {

@@ -1,19 +1,16 @@
 // Test script to submit data directly to our API
 const testData = {
   employeeType: 'trainer',
-  fullName: 'Testing 16',
-  email: 'yjsoon@gmail.com',
+  fullName: 'Testing Freelancer 29',
+  email: 'yjsoon+29@gmail.com',
   nric: 'S0000000D',
-  nationality: 'sg_citizen',
+  nationality: 'Indian',
+  citizenshipStatus: 'other',
   dob: '1990-01-01',
   gender: 'male',
   bank: 'DBS',
-  accountName: 'Testing 16',
-  accountNumber: '049409991',
-  // These will be computed by the form logic
-  immigrationStatus: 'Contract (No CPF, No SDL)',
-  jobTitle: 'Freelance Trainer',
-  basicSalary: 0
+  accountName: 'Testing Freelancer 29',
+  accountNumber: '049409991'
 };
 
 async function testSubmit() {
