@@ -82,12 +82,9 @@ const getNextEmployeeId = async () => {
       const employees = await response.json();
       console.log('Found', employees.length || 0, 'existing employees');
       
-      // Log a few employee objects to see the structure
-      if (employees && employees.length > 0) {
+      // Log sample employee structure for debugging (first run only)
+      if (employees && employees.length > 0 && Math.random() < 0.1) {
         console.log('Sample employee object:', JSON.stringify(employees[0], null, 2));
-        if (employees.length > 1) {
-          console.log('Another employee object:', JSON.stringify(employees[1], null, 2));
-        }
       }
       
       // Look for Employee ID field (not database ID) - try multiple field names
@@ -169,73 +166,31 @@ const transformForTalenox = async (formData) => {
     resignDate = endDate.toISOString().split('T')[0];
   }
   
-  // Based on the screenshots, these fields seem to be working:
-  // - first_name (showing as "Testing")
-  // - email (showing as "a@example.com") 
-  // - hired_date/resign_date (showing May 1-2, 2025)
-  // - gender (showing "Male")
-  // - nationality (showing "Singaporean")
-  // - immigration_status (showing "Contract (No CPF, No SDL)")
-  
-  // Generate a custom employee ID format for Tinkercademy
-  const generateEmployeeId = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const employeeTypeCode = formData.employeeType === 'trainer' ? 'T' : 
-                           formData.employeeType.includes('intern') ? 'I' : 'F';
-    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `TC${year}${month}${employeeTypeCode}${randomNum}`;
-  };
-
-  // Combine working fields from before with new discoveries
+  // Transform form data to Talenox API format
   return {
-    // Fields that definitely work (keep from before)
-    first_name: formData.fullName, // This worked before
+    // Core working fields
+    first_name: formData.fullName,
     email: formData.email,
     gender: formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1),
     nationality: nationalityMap[formData.nationality] || 'Foreigner',
-    hired_date: hiredDate, // This worked before
-    resign_date: resignDate || null, // This worked before
-    birthdate: formData.dob, // This worked before
-    
-    // NRIC field that works
-    ssn: formData.nric, // This worked in the last test
-    
-    // Employee ID - try getting next available ID
+    hired_date: hiredDate,
+    resign_date: resignDate || null,
+    birthdate: formData.dob,
+    ssn: formData.nric,
     employee_id: await getNextEmployeeId(),
     
-    // Try additional field combinations
-    name: formData.fullName, // Also try this
-    last_name: '', // Always empty
-    date_of_birth: formData.dob, // Also try this format
-    employment_start_date: hiredDate,
-    employment_end_date: resignDate || null,
-    
-    // Banking information - use structure from Zapier script
+    // Banking information (nested structure)
     bank_account_attributes: {
       bank_type: formData.bank,
       account_name: formData.accountName,
       number: formData.accountNumber
     },
     
-    // Also try flat field structure as backup
-    bank_name: formData.bank,
-    bank: formData.bank,
-    account_holder_name: formData.accountName,
-    account_name: formData.accountName,
-    bank_account_name: formData.accountName,
-    account_number: formData.accountNumber,
-    bank_account_number: formData.accountNumber,
-    bank_account_no: formData.accountNumber,
-    
-    // Job information - try multiple variations
+    // Job information
     job_title: formData.jobTitle,
     position: formData.jobTitle,
-    designation: formData.jobTitle,
-    role: formData.jobTitle,
     
-    // Additional info
+    // Additional metadata
     employee_type: formData.employeeType,
     requires_shg: formData.requiresSHG || false,
     country_id: 'SG'
@@ -312,9 +267,8 @@ exports.handler = async (event) => {
     }
     
     // Call Talenox API
-    console.log('Calling Talenox API...');
+    console.log('Creating employee via Talenox API');
     console.log('Sending data:', redactSensitiveData(talenoxData));
-    console.log('API URL:', `${process.env.TALENOX_API_URL}/employees`);
     
     const talenoxResponse = await fetch(`${process.env.TALENOX_API_URL}/employees`, {
       method: 'POST',
@@ -355,7 +309,6 @@ exports.handler = async (event) => {
     }
     
     const talenoxResult = await talenoxResponse.json();
-    console.log('Talenox API response:', JSON.stringify(talenoxResult, null, 2));
     console.log('Employee created successfully with ID:', talenoxResult.id || talenoxResult.employee_id);
     
     return {
@@ -384,7 +337,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         error: 'Internal server error',
         details: 'An unexpected error occurred. Please try again.',
-        debug: error.message // Add error message for debugging
+        debug: process.env.NODE_ENV === 'development' ? error.message : undefined
       })
     };
   }
