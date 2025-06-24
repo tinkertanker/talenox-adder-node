@@ -67,6 +67,95 @@ const validateFormData = (data) => {
   return errors;
 };
 
+// Create job for employee based on employee type
+const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate) => {
+  try {
+    // Calculate job start and end dates based on employee type
+    let jobStartDate, jobEndDate, jobTitle, amount, department;
+    
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    nextMonth.setDate(1); // First day of next month
+    
+    if (formData.employeeType === 'trainer') {
+      jobTitle = 'Freelance Trainer';
+      department = 'Training';
+      jobStartDate = hiredDate; // Same as hired date
+      jobEndDate = resignDate; // Same as resign date
+      amount = 0;
+    } else if (formData.employeeType === 'intern_school' || formData.employeeType === 'intern_no_school') {
+      jobTitle = 'Tinkertanker Intern';
+      department = 'Internship';
+      jobStartDate = nextMonth.toISOString().split('T')[0]; // Beginning of next month
+      
+      // End date 3 months later
+      const threeMonthsLater = new Date(nextMonth);
+      threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+      jobEndDate = threeMonthsLater.toISOString().split('T')[0];
+      amount = 800;
+    } else if (formData.employeeType === 'fulltime') {
+      jobTitle = 'Tinkertanker Full-timer';
+      department = 'Operations';
+      jobStartDate = nextMonth.toISOString().split('T')[0]; // Beginning of next month
+      // Set end date far in future for full-timers (required field)
+      const farFuture = new Date(nextMonth);
+      farFuture.setFullYear(farFuture.getFullYear() + 10);
+      jobEndDate = farFuture.toISOString().split('T')[0];
+      amount = 3000;
+    }
+    
+    // Convert dates to DD/MM/YYYY format as shown in API docs
+    const formatDate = (dateStr) => {
+      const date = new Date(dateStr);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
+    const jobData = {
+      employee_id: parseInt(employeeId),
+      title: jobTitle,
+      job: {
+        title: jobTitle,
+        department: department,
+        start_date: formatDate(jobStartDate),
+        end_date: formatDate(jobEndDate),
+        currency: 'SGD',
+        amount: amount,
+        rate_of_pay: 'Monthly',
+        remarks: `Auto-created job for ${formData.employeeType}`
+      }
+    };
+    
+    console.log('Creating job for employee:', employeeId, 'with data:', jobData);
+    
+    const jobResponse = await fetch(`${process.env.TALENOX_API_URL}/jobs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TALENOX_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(jobData)
+    });
+    
+    if (jobResponse.ok) {
+      const jobResult = await jobResponse.json();
+      console.log('Job created successfully:', jobResult.id);
+      return jobResult;
+    } else {
+      const errorText = await jobResponse.text();
+      console.error('Job creation failed:', jobResponse.status, errorText);
+      throw new Error(`Job creation failed: ${jobResponse.status}`);
+    }
+    
+  } catch (error) {
+    console.error('Error creating job:', error);
+    throw error;
+  }
+};
+
 // Get next employee ID by querying existing employees
 const getNextEmployeeId = async () => {
   try {
@@ -309,7 +398,18 @@ exports.handler = async (event) => {
     }
     
     const talenoxResult = await talenoxResponse.json();
-    console.log('Employee created successfully with ID:', talenoxResult.id || talenoxResult.employee_id);
+    const employeeId = talenoxResult.id || talenoxResult.employee_id;
+    console.log('Employee created successfully with ID:', employeeId);
+    
+    // Create job for the employee
+    let jobResult = null;
+    try {
+      jobResult = await createJobForEmployee(employeeId, formData, talenoxData.hired_date, talenoxData.resign_date);
+      console.log('Job created successfully for employee:', employeeId);
+    } catch (jobError) {
+      console.error('Job creation failed, but employee was created:', jobError);
+      // Continue - employee creation succeeded even if job creation failed
+    }
     
     return {
       statusCode: 200,
@@ -319,8 +419,9 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         success: true,
-        message: 'Employee created successfully',
-        employeeId: talenoxResult.id || talenoxResult.employee_id || 'Unknown'
+        message: jobResult ? 'Employee and job created successfully' : 'Employee created successfully (job creation failed)',
+        employeeId: employeeId || 'Unknown',
+        jobId: jobResult ? jobResult.id : null
       })
     };
     
