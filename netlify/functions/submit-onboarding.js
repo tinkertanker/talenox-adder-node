@@ -79,7 +79,7 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate)
     
     if (formData.employeeType === 'trainer') {
       jobTitle = 'Freelance Trainer';
-      department = 'Training';
+      department = 'Tinkercademy';
       jobStartDate = hiredDate; // Same as hired date
       jobEndDate = resignDate; // Same as resign date
       amount = 0;
@@ -278,6 +278,9 @@ const transformForTalenox = async (formData) => {
     // Job information
     job_title: formData.jobTitle,
     position: formData.jobTitle,
+    
+    // User account creation - automatically create and invite
+    invite_user: true,
     
     // Additional metadata
     employee_type: formData.employeeType,

@@ -32,6 +32,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Auto-incrementing employee ID generation** (queries existing employees)
 - **Banking information integration** using nested object structure
 - **Comprehensive job creation** for all employee types with automatic pay/date logic
+- **User account creation and invitation** (automatic Talenox account setup)
 - **Clean, optimized codebase** with minimal overhead
 - Environment variable configuration and security headers
 
@@ -42,7 +43,6 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Comprehensive documentation
 
 ### In Progress 🔄
-- User account setup and permissions
 - Immigration status field mapping
 
 ### TODO 🚧
@@ -50,7 +50,6 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
   - Send confirmation email to employee after successful form submission
   - Send notification email to HR team
   - Include submission details and next steps
-- User account setup and portal permissions
 - Immigration status field mapping
 - Performance monitoring and error tracking
 
@@ -113,7 +112,10 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
     bank_type: formData.bank,
     account_name: formData.accountName,
     number: formData.accountNumber
-  }
+  },
+  
+  // User account creation
+  invite_user: true // Automatically creates Talenox account + sends invitation
 }
 ```
 
@@ -185,6 +187,8 @@ HR_EMAIL=hr@tinkercademy.com
 - [x] Banking information populates correctly
 - [x] Job creation for all employee types working
 - [x] Automatic pay and date calculation working
+- [x] User account creation and invitation working
+- [x] Complete end-to-end onboarding automation
 - [x] Core integration stable and optimized
 
 ## Deployment Process
