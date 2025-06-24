@@ -230,11 +230,26 @@ const getNextEmployeeId = async () => {
 
 // Transform data for Talenox API
 const transformForTalenox = async (formData) => {
-  // Map nationality to Talenox format
-  const nationalityMap = {
-    'sg_citizen': 'Singaporean',
-    'sg_pr': 'Singapore PR',
-    'other': 'Foreigner'
+  // Nationality is defaulted to Singaporean for all employees
+  
+  // Map immigration status based on employee type and nationality
+  const getImmigrationStatus = (employeeType, nationality) => {
+    if (employeeType === 'trainer') {
+      return 'Contract (No CPF, No SDL)';
+    } else if (employeeType === 'intern_school') {
+      return 'Contract (No CPF, No SDL)';
+    } else if (employeeType === 'intern_no_school') {
+      return 'Intern';
+    } else if (employeeType === 'fulltime') {
+      if (nationality === 'sg_citizen') {
+        return 'Singapore Citizen';
+      } else if (nationality === 'sg_pr') {
+        return 'Singapore PR';
+      } else {
+        return 'Singapore Citizen'; // Default for full-timers
+      }
+    }
+    return 'Contract (No CPF, No SDL)'; // Default fallback
   };
   
   // For trainers, calculate 1st of last month if no start date provided
@@ -261,12 +276,15 @@ const transformForTalenox = async (formData) => {
     first_name: formData.fullName,
     email: formData.email,
     gender: formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1),
-    nationality: nationalityMap[formData.nationality] || 'Foreigner',
+    nationality: 'Singaporean', // Default to Singaporean for now
     hired_date: hiredDate,
     resign_date: resignDate || null,
     birthdate: formData.dob,
     ssn: formData.nric,
     employee_id: await getNextEmployeeId(),
+    
+    // Immigration status based on employee type and nationality
+    citizenship: getImmigrationStatus(formData.employeeType, formData.nationality),
     
     // Banking information (nested structure)
     bank_account_attributes: {
