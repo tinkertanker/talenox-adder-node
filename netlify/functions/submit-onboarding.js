@@ -274,7 +274,7 @@ This is an automated notification from the Tinkercademy onboarding system.
     `.trim();
 
     await resend.emails.send({
-      from: 'Tinkercademy Onboarding <onboarding@tinkercademy.com>',
+      from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <onboarding@tinkercademy.com>',
       to: [process.env.HR_EMAIL],
       subject: `New Employee: ${formData.fullName} (${employeeTypeText[formData.employeeType] || formData.employeeType})`,
       text: emailContent
