@@ -67,8 +67,83 @@ const validateFormData = (data) => {
   return errors;
 };
 
+// Get next employee ID by querying existing employees
+const getNextEmployeeId = async () => {
+  try {
+    const response = await fetch(`${process.env.TALENOX_API_URL}/employees`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.TALENOX_API_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const employees = await response.json();
+      console.log('Found', employees.length || 0, 'existing employees');
+      
+      // Log a few employee objects to see the structure
+      if (employees && employees.length > 0) {
+        console.log('Sample employee object:', JSON.stringify(employees[0], null, 2));
+        if (employees.length > 1) {
+          console.log('Another employee object:', JSON.stringify(employees[1], null, 2));
+        }
+      }
+      
+      // Look for Employee ID field (not database ID) - try multiple field names
+      let maxEmployeeId = 0;
+      const employeeIds = [];
+      
+      if (employees && employees.length > 0) {
+        employees.forEach((emp, index) => {
+          // Try multiple possible field names for employee ID
+          const possibleFields = [
+            'employee_id', 'emp_id', 'employee_no', 'employee_number', 
+            'staff_id', 'emp_no', 'employeeId', 'empId'
+          ];
+          
+          let foundId = null;
+          for (const field of possibleFields) {
+            if (emp[field] && emp[field] !== emp.id) { // Make sure it's not the database ID
+              foundId = emp[field];
+              break;
+            }
+          }
+          
+          if (foundId) {
+            employeeIds.push(foundId);
+            const numericId = parseInt(foundId.toString().replace(/\D/g, ''), 10);
+            if (!isNaN(numericId) && numericId > maxEmployeeId && numericId < 10000) { // Filter out large database IDs
+              maxEmployeeId = numericId;
+            }
+          }
+        });
+      }
+      
+      console.log('Found employee IDs:', employeeIds);
+      console.log('Highest employee ID found:', maxEmployeeId);
+      
+      if (maxEmployeeId > 0) {
+        const nextId = maxEmployeeId + 1;
+        console.log('Next employee ID should be:', nextId);
+        return nextId.toString();
+      } else {
+        // If no employee IDs found, start from 301 (since you mentioned 300+)
+        console.log('No existing employee IDs found, starting from 301');
+        return '301';
+      }
+    }
+  } catch (error) {
+    console.log('Could not fetch existing employees:', error.message);
+  }
+  
+  // Fallback: start from 301
+  console.log('Fallback: starting from 301');
+  return '301';
+};
+
 // Transform data for Talenox API
-const transformForTalenox = (formData) => {
+const transformForTalenox = async (formData) => {
   // Map nationality to Talenox format
   const nationalityMap = {
     'sg_citizen': 'Singaporean',
@@ -102,6 +177,17 @@ const transformForTalenox = (formData) => {
   // - nationality (showing "Singaporean")
   // - immigration_status (showing "Contract (No CPF, No SDL)")
   
+  // Generate a custom employee ID format for Tinkercademy
+  const generateEmployeeId = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const employeeTypeCode = formData.employeeType === 'trainer' ? 'T' : 
+                           formData.employeeType.includes('intern') ? 'I' : 'F';
+    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `TC${year}${month}${employeeTypeCode}${randomNum}`;
+  };
+
   // Combine working fields from before with new discoveries
   return {
     // Fields that definitely work (keep from before)
@@ -115,6 +201,9 @@ const transformForTalenox = (formData) => {
     
     // NRIC field that works
     ssn: formData.nric, // This worked in the last test
+    
+    // Employee ID - try getting next available ID
+    employee_id: await getNextEmployeeId(),
     
     // Try additional field combinations
     name: formData.fullName, // Also try this
@@ -197,7 +286,7 @@ exports.handler = async (event) => {
     }
     
     // Transform data for Talenox
-    const talenoxData = transformForTalenox(formData);
+    const talenoxData = await transformForTalenox(formData);
     
     // Check if API key is configured
     if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
