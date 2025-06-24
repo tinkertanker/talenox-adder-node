@@ -1,16 +1,16 @@
 // Test script to submit data directly to our API
 const testData = {
   employeeType: 'trainer',
-  fullName: 'Testing Freelancer 29',
-  email: 'yjsoon+29@gmail.com',
+  fullName: 'Testing HR Email 35',
+  email: 'yjsoon+35@gmail.com',
   nric: 'S0000000D',
-  nationality: 'Indian',
+  nationality: 'South Korean',
   citizenshipStatus: 'other',
-  dob: '1990-01-01',
+  dob: '1985-09-08',
   gender: 'male',
   bank: 'DBS',
-  accountName: 'Testing Freelancer 29',
-  accountNumber: '049409991'
+  accountName: 'Testing HR Email 35',
+  accountNumber: '111222333'
 };
 
 async function testSubmit() {

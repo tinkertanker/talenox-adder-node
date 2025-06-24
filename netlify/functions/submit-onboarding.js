@@ -1,5 +1,8 @@
 // Netlify Function to handle onboarding form submission and Talenox API integration
 
+// Initialize Resend for email notifications
+const { Resend } = require('resend');
+
 // Helper function to redact sensitive data for logging
 const redactSensitiveData = (data) => {
   const redacted = { ...data };
@@ -229,6 +232,61 @@ const getNextEmployeeId = async () => {
   return '301';
 };
 
+// Send HR notification email
+const sendHRNotification = async (formData, employeeId, jobId) => {
+  // Check if Resend is configured
+  if (!process.env.RESEND_API_KEY || !process.env.HR_EMAIL) {
+    console.log('Resend not configured, skipping HR notification');
+    return;
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    const employeeTypeText = {
+      'trainer': 'Freelance Trainer',
+      'intern_school': 'Intern with School Letter',
+      'intern_no_school': 'Intern without School Letter',
+      'fulltime': 'Full-time Employee'
+    };
+
+    const emailContent = `
+New Employee Onboarding Submission
+
+Employee Details:
+- Name: ${formData.fullName}
+- Employee Type: ${employeeTypeText[formData.employeeType] || formData.employeeType}
+- Email: ${formData.email}
+- Nationality: ${formData.nationality || 'Not specified'}
+- Citizenship Status: ${formData.citizenshipStatus || 'Not specified'}
+
+Talenox Integration:
+- Employee ID: ${employeeId}
+- Job ID: ${jobId}
+- Status: Successfully created with automatic user account invitation
+
+Next Steps:
+- Employee will receive Talenox account invitation email
+- Review employee details in Talenox dashboard
+- Confirm all information is correct
+
+This is an automated notification from the Tinkercademy onboarding system.
+    `.trim();
+
+    await resend.emails.send({
+      from: 'Tinkercademy Onboarding <onboarding@tinkercademy.com>',
+      to: [process.env.HR_EMAIL],
+      subject: `New Employee: ${formData.fullName} (${employeeTypeText[formData.employeeType] || formData.employeeType})`,
+      text: emailContent
+    });
+
+    console.log('HR notification sent successfully');
+  } catch (error) {
+    console.error('Failed to send HR notification:', error);
+    // Don't throw error - email failure shouldn't break the main flow
+  }
+};
+
 // Transform data for Talenox API
 const transformForTalenox = async (formData) => {
   // Nationality is defaulted to Singaporean for all employees
@@ -432,6 +490,9 @@ exports.handler = async (event) => {
       console.error('Job creation failed, but employee was created:', jobError);
       // Continue - employee creation succeeded even if job creation failed
     }
+    
+    // Send HR notification email
+    await sendHRNotification(formData, employeeId, jobResult ? jobResult.id : null);
     
     return {
       statusCode: 200,

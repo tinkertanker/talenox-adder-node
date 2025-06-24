@@ -33,6 +33,8 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Banking information integration** using nested object structure
 - **Comprehensive job creation** for all employee types with automatic pay/date logic
 - **User account creation and invitation** (automatic Talenox account setup)
+- **HR email notifications** using Resend API (PDPA-compliant)
+- **Comprehensive nationality list** (200+ countries) with separate citizenship status
 - **Clean, optimized codebase** with minimal overhead
 - Environment variable configuration and security headers
 
@@ -42,16 +44,14 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Environment variables template
 - Comprehensive documentation
 
-### In Progress 🔄
-- Immigration status field mapping
+### Recently Completed ✅
+- **Citizenship field mapping** for all employee types (Contract/Intern/Singapore Citizen/Singapore PR)
+- **Comprehensive nationality list** with 200+ countries from Talenox
+- **HR email notifications** using Resend API with PDPA-compliant content
 
 ### TODO 🚧
-- **Priority: Email confirmation system using resend.com**
-  - Send confirmation email to employee after successful form submission
-  - Send notification email to HR team
-  - Include submission details and next steps
-- Immigration status field mapping
-- Performance monitoring and error tracking
+- **Employee confirmation emails** - send welcome email to new employees
+- Performance monitoring and error tracking (future consideration)
 
 ## Technical Implementation
 
