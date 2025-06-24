@@ -31,6 +31,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Live Talenox API integration** with optimized field mapping
 - **Auto-incrementing employee ID generation** (queries existing employees)
 - **Banking information integration** using nested object structure
+- **Comprehensive job creation** for all employee types with automatic pay/date logic
 - **Clean, optimized codebase** with minimal overhead
 - Environment variable configuration and security headers
 
@@ -41,11 +42,10 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Comprehensive documentation
 
 ### In Progress 🔄
-- Job details field mapping (position/title assignment)
 - User account setup and permissions
+- Immigration status field mapping
 
 ### TODO 🚧
-- **Priority: Complete job details mapping** (position/title assignment)
 - **Priority: Email confirmation system using resend.com**
   - Send confirmation email to employee after successful form submission
   - Send notification email to HR team
@@ -92,10 +92,12 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Interns**: Require both start and end dates
 - **Full-timers**: Require only start date
 
-### Talenox Field Mapping (WORKING)
+### Talenox Integration (WORKING)
+
+#### Employee Creation (✅ Complete)
 ```javascript
 {
-  // Core fields (✅ Working)
+  // Core employee fields - all working
   first_name: formData.fullName,
   email: formData.email,
   gender: formData.gender,
@@ -106,17 +108,37 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
   ssn: formData.nric, // NRIC/FIN identification
   employee_id: auto_generated_sequential_id, // Auto-increments from 300+
   
-  // Banking (✅ Working via nested structure)
+  // Banking information - nested structure
   bank_account_attributes: {
     bank_type: formData.bank,
     account_name: formData.accountName,
     number: formData.accountNumber
-  },
-  
-  // Still TODO
-  job_title: computed_title, // Needs mapping
-  immigration_status: computed_status, // Needs mapping
+  }
 }
+```
+
+#### Job Creation (✅ Complete)
+```javascript
+// Automatically creates jobs after employee creation
+{
+  employee_id: created_employee_id,
+  title: job_title, // Based on employee type
+  job: {
+    title: job_title,
+    department: department, // Training/Internship/Operations
+    start_date: calculated_start_date, // DD/MM/YYYY format
+    end_date: calculated_end_date,
+    currency: 'SGD',
+    amount: pay_amount, // 0/800/3000 based on type
+    rate_of_pay: 'Monthly',
+    remarks: 'Auto-created job'
+  }
+}
+
+// Job Logic by Employee Type:
+// - Trainers: Freelance Trainer, 0 pay, same dates as employment
+// - Interns: Tinkertanker Intern, 800 SGD, next month + 3 months
+// - Full-timers: Tinkertanker Full-timer, 3000 SGD, next month + 10 years
 ```
 
 ## Development Guidelines
@@ -161,6 +183,8 @@ HR_EMAIL=hr@tinkercademy.com
 - [x] Sensitive data is never logged
 - [x] Employee ID auto-generation working
 - [x] Banking information populates correctly
+- [x] Job creation for all employee types working
+- [x] Automatic pay and date calculation working
 - [x] Core integration stable and optimized
 
 ## Deployment Process
