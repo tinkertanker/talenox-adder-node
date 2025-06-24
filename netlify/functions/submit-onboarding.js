@@ -94,31 +94,55 @@ const transformForTalenox = (formData) => {
     resignDate = endDate.toISOString().split('T')[0];
   }
   
+  // Based on the screenshots, these fields seem to be working:
+  // - first_name (showing as "Testing")
+  // - email (showing as "yjsoon@me.com") 
+  // - hired_date/resign_date (showing May 1-2, 2025)
+  // - gender (showing "Male")
+  // - nationality (showing "Singaporean")
+  // - immigration_status (showing "Contract (No CPF, No SDL)")
+  
+  // Combine working fields from before with new discoveries
   return {
-    // Personal Information
-    first_name: formData.fullName,
-    last_name: '', // Always empty per Talenox requirement
+    // Fields that definitely work (keep from before)
+    first_name: formData.fullName, // This worked before
     email: formData.email,
-    identification_number: formData.nric,
-    date_of_birth: formData.dob,
     gender: formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1),
     nationality: nationalityMap[formData.nationality] || 'Foreigner',
+    hired_date: hiredDate, // This worked before
+    resign_date: resignDate || null, // This worked before
+    birthdate: formData.dob, // This worked before
     
-    // Employment Information
-    immigration_status: formData.immigrationStatus,
-    hired_date: hiredDate,
-    resign_date: resignDate || null,
-    job_title: formData.jobTitle,
-    basic_salary: formData.basicSalary || 0,
+    // NRIC field that works
+    ssn: formData.nric, // This worked in the last test
     
-    // Banking Information
+    // Try additional field combinations
+    name: formData.fullName, // Also try this
+    last_name: '', // Always empty
+    date_of_birth: formData.dob, // Also try this format
+    employment_start_date: hiredDate,
+    employment_end_date: resignDate || null,
+    
+    // Banking - try multiple field name variations
     bank_name: formData.bank,
+    bank: formData.bank,
+    account_holder_name: formData.accountName,
+    account_name: formData.accountName,
     bank_account_name: formData.accountName,
+    account_number: formData.accountNumber,
     bank_account_number: formData.accountNumber,
+    bank_account_no: formData.accountNumber,
     
-    // Additional fields that might be required
+    // Job information - try multiple variations
+    job_title: formData.jobTitle,
+    position: formData.jobTitle,
+    designation: formData.jobTitle,
+    role: formData.jobTitle,
+    
+    // Additional info
     employee_type: formData.employeeType,
-    requires_shg: formData.requiresSHG || false
+    requires_shg: formData.requiresSHG || false,
+    country_id: 'SG'
   };
 };
 
@@ -175,40 +199,51 @@ exports.handler = async (event) => {
     // Transform data for Talenox
     const talenoxData = transformForTalenox(formData);
     
-    // TODO: Call Talenox API
-    // This is where you'll add the actual API call once you have credentials
-    if (!process.env.TALENOX_API_KEY) {
-      console.log('Talenox API key not configured - skipping API call');
-      console.log('Would send to Talenox:', redactSensitiveData(talenoxData));
-      
-      // For now, simulate success
+    // Check if API key is configured
+    if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
+      console.error('Talenox API credentials not configured');
       return {
-        statusCode: 200,
+        statusCode: 500,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({
-          success: true,
-          message: 'Form submitted successfully (API integration pending)',
-          employeeId: 'DEMO-' + Date.now()
+          error: 'API configuration error',
+          details: 'Talenox API is not properly configured. Please contact support.'
         })
       };
     }
     
-    // Actual Talenox API call (when credentials are available)
+    // Call Talenox API
+    console.log('Calling Talenox API...');
+    console.log('Sending data:', redactSensitiveData(talenoxData));
+    console.log('API URL:', `${process.env.TALENOX_API_URL}/employees`);
+    
     const talenoxResponse = await fetch(`${process.env.TALENOX_API_URL}/employees`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.TALENOX_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify(talenoxData)
     });
     
     if (!talenoxResponse.ok) {
-      const errorData = await talenoxResponse.json();
-      console.error('Talenox API error:', errorData);
+      const errorText = await talenoxResponse.text();
+      console.error('Talenox API error:', talenoxResponse.status, errorText);
+      
+      let errorMessage = 'Failed to create employee in Talenox';
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('Error details:', errorData);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // Not JSON error response
+      }
       
       return {
         statusCode: 500,
@@ -217,14 +252,15 @@ exports.handler = async (event) => {
           'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({
-          error: 'Failed to create employee in Talenox',
-          details: 'Please try again or contact support'
+          error: errorMessage,
+          details: 'Please check the data and try again'
         })
       };
     }
     
     const talenoxResult = await talenoxResponse.json();
-    console.log('Employee created successfully:', talenoxResult.id);
+    console.log('Talenox API response:', JSON.stringify(talenoxResult, null, 2));
+    console.log('Employee created successfully with ID:', talenoxResult.id || talenoxResult.employee_id);
     
     return {
       statusCode: 200,
@@ -235,12 +271,13 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         success: true,
         message: 'Employee created successfully',
-        employeeId: talenoxResult.id
+        employeeId: talenoxResult.id || talenoxResult.employee_id || 'Unknown'
       })
     };
     
   } catch (error) {
     console.error('Function error:', error);
+    console.error('Error stack:', error.stack);
     
     return {
       statusCode: 500,
@@ -250,7 +287,8 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         error: 'Internal server error',
-        details: 'An unexpected error occurred. Please try again.'
+        details: 'An unexpected error occurred. Please try again.',
+        debug: error.message // Add error message for debugging
       })
     };
   }

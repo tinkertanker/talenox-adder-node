@@ -44,10 +44,13 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Ready to integrate once credentials provided
 
 ### TODO 🚧
-- Add actual Talenox API calls (structure already in place)
+- **Priority: Add actual Talenox API calls** (structure already in place)
+- **Priority: Email confirmation system using resend.com**
+  - Send confirmation email to employee after successful form submission
+  - Send notification email to HR team
+  - Include submission details and next steps
 - Test with Talenox sandbox environment
-- Add email notifications (optional)
-- Performance monitoring
+- Performance monitoring and error tracking
 
 ## Technical Implementation
 
@@ -66,6 +69,13 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
   - CORS protection
   - Environment variable encryption
   - Input sanitization
+
+### Email Notification System (TODO)
+- **Email Service**: Resend.com for reliable email delivery
+- **Employee Confirmation**: Welcome email with submission confirmation
+- **HR Notification**: Automated alert to HR team with employee details
+- **Email Templates**: Branded HTML templates with submission summary
+- **PDPA Compliance**: No sensitive data in email content, reference IDs only
 
 ### Data Flow
 1. User fills form → Client-side validation
@@ -126,6 +136,13 @@ npm run dev
 - Use `.env.example` as template
 - Set production variables in Netlify dashboard
 - Access via `process.env.VARIABLE_NAME`
+
+#### Required Environment Variables
+```
+TALENOX_API_KEY=your_talenox_api_key
+RESEND_API_KEY=your_resend_api_key
+HR_EMAIL=hr@tinkercademy.com
+```
 
 ### Testing Checklist
 - [ ] All employee types create correct data
