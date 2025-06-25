@@ -1,56 +1,64 @@
-# Tinkercademy Employee Onboarding Form
+# Tinkercademy Employee Onboarding System
 
-A streamlined onboarding form for Tinkercademy employees that collects necessary information and prepares data for Talenox API integration.
+A comprehensive, production-ready onboarding system that fully automates employee creation in Talenox with integrated HR notifications.
 
 ## Overview
 
-This project simplifies the employee onboarding process by:
-- Collecting all required information in a single form
-- Automatically determining employee-specific requirements based on their type
-- Preparing data for seamless Talenox integration
-- Reducing manual data entry and potential errors
+This system completely automates the employee onboarding process by:
+- Collecting all required information in a single comprehensive form
+- **Automatically creating employees in Talenox** with proper field mapping
+- **Auto-generating sequential employee IDs** (300+ range)
+- **Creating jobs and setting up user accounts** with automatic invitations
+- **Sending HR notifications** with employee details and internal IDs
+- Supporting **200+ nationalities** with proper citizenship status mapping
+- Handling **all major Singapore banks** with correct Talenox formatting
 
-## Current Process vs. New Process
+## Current Process vs. Automated Process
 
-### Current Process
+### Old Manual Process
 1. Collect basic info (name, email, NRIC)
 2. Manually create Talenox entry
 3. Employee receives Talenox invitation email
 4. Employee fills additional information in Talenox
 5. Employee submits bank details via separate Google Form
+6. HR manually processes and updates records
 
-### New Process
-1. Employee fills single comprehensive form
-2. System automatically determines requirements based on employee type
-3. Data is prepared for Talenox API
-4. Employee receives confirmation and Talenox login instructions
+### New Automated Process
+1. Employee fills **single comprehensive form** (2-3 minutes)
+2. System **automatically creates complete Talenox employee** with all data
+3. System **generates sequential internal employee ID** (300+ range)
+4. System **creates appropriate job** with correct pay structure
+5. System **sends Talenox account invitation** automatically
+6. System **notifies HR** with internal employee ID and details
+7. **Done!** Employee receives Talenox login instructions immediately
 
-## Features
+## Core Features
 
-### Employee Types
-- **Freelance Trainer**: Contract workers without CPF/SDL
-- **Intern with School Letter**: Official school internship program
-- **Intern without School Letter**: Non-official internship
-- **Full-time Employee**: Permanent staff
+### ✅ Complete Talenox Integration
+- **Live API Integration**: Creates actual employees in Talenox production system
+- **Auto-incrementing Employee IDs**: Sequential internal numbering (300+ range)
+- **Complete Job Creation**: Automatic job setup with correct pay structures
+- **User Account Setup**: Automatic Talenox account creation with email invitations
+- **Banking Integration**: Proper bank field mapping with nested object structure
 
-### Collected Information
-- Personal details (name, email, NRIC/FIN, nationality, DOB, gender)
-- Employment dates (conditional based on employee type)
-- Banking information for payroll
+### ✅ Employee Types Supported
+- **Freelance Trainer**: Contract workers (No CPF/SDL) - $0 pay
+- **Intern with School Letter**: Official internship - $800/month
+- **Intern without School Letter**: Non-official internship - $800/month  
+- **Full-time Employee**: Permanent staff - $3000/month
 
-### Automatic Calculations
-Based on employee type, the system automatically determines:
-- **Immigration Status**
-  - Contract (No CPF, No SDL) for trainers and official interns
-  - Singapore Citizen/PR/Work Pass for others
-- **Job Title**
-  - "Freelance Trainer" or "Tinkercademy Intern"
-- **Employment Dates**
-  - Trainers: Auto-filled (start: 1st of previous month, end: 2nd of previous month)
-  - Interns: User-specified start and end dates
-  - Full-timers: User-specified start date only
-- **SHG Requirements**
-  - Applied for non-official interns and full-timers
+### ✅ Comprehensive Data Collection
+- **Personal Details**: Name, email, NRIC/FIN, DOB, gender
+- **Nationality**: 200+ countries from official Talenox list
+- **Citizenship Status**: Singapore Citizen/PR/Others (for CPF/SDL determination)
+- **Employment Dates**: Smart conditional fields based on employee type
+- **Banking**: All major Singapore banks (DBS, POSB, OCBC, UOB, Standard Chartered, Citibank, HSBC, Maybank, Trust Bank)
+
+### ✅ Intelligent Automation
+- **Citizenship Mapping**: Automatic CPF/SDL status based on employee type + citizenship
+- **Date Logic**: Smart employment date handling per employee type
+- **Job Creation**: Automatic job setup with appropriate pay and duration
+- **HR Notifications**: Email alerts with internal employee ID and complete details
 
 ## Technical Details
 
@@ -148,13 +156,18 @@ npm run dev
 3. **Configure Environment Variables**
    In Netlify Dashboard → Site settings → Environment variables:
    - `TALENOX_API_KEY`: Your Talenox API key
-   - `TALENOX_API_URL`: Talenox API endpoint (e.g., https://api.talenox.com/v1)
+   - `TALENOX_API_URL`: Talenox API endpoint (https://api.talenox.com/api/v2)
+   - `RESEND_API_KEY`: Your Resend.com API key for email notifications
+   - `NOTIFY_EMAIL`: HR email address for notifications (e.g., hr.onboarding@tinkertanker.com)
+   - `FROM_EMAIL`: Sender email address (e.g., "Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>")
    - `ALLOWED_ORIGINS`: Your production URL (optional)
 
 4. **Test the Deployment**
-   - Form works immediately in demo mode (without API key)
-   - With credentials, it creates real Talenox employees
-   - Check Functions tab in Netlify for logs
+   - ✅ **Production Ready**: System creates real Talenox employees immediately
+   - ✅ **Employee IDs**: Auto-generates sequential internal IDs (300+ range)
+   - ✅ **Job Creation**: Automatically creates jobs with correct pay structures
+   - ✅ **Email Notifications**: HR receives notifications with employee details
+   - Check Functions tab in Netlify for detailed logs
 
 ## Architecture
 
@@ -165,10 +178,11 @@ npm run dev
 - Responsive design
 
 ### Backend (Netlify Functions)
-- Serverless function: `submit-onboarding.js`
-- PDPA-compliant data handling
-- Automatic field computation
-- Secure API key storage
+- **Production Talenox Integration**: Live API calls to create employees and jobs
+- **Email Notifications**: Resend.com integration for HR alerts
+- **Auto-incrementing IDs**: Sequential employee ID generation (300+ range)
+- **PDPA-compliant**: Sensitive data redaction in logs
+- **Complete Automation**: Employee → Job → User Account → Notification flow
 
 ### Security Features
 - NRIC/FIN validation and redaction in logs
