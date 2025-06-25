@@ -236,15 +236,11 @@ const getNextEmployeeId = async () => {
 const sendHRNotification = async (formData, talenoxEmployeeId, jobId, internalEmployeeId) => {
   // Check if Resend is configured
   if (!process.env.RESEND_API_KEY || !process.env.NOTIFY_EMAIL) {
-    console.log('Resend not configured, skipping HR notification');
+    console.log('Resend not configured, skipping notification');
     return;
   }
 
   try {
-    console.log('Attempting to send HR notification email...');
-    console.log('FROM_EMAIL:', process.env.FROM_EMAIL || 'default');
-    console.log('NOTIFY_EMAIL:', process.env.NOTIFY_EMAIL || 'default');
-    
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const employeeTypeText = {
@@ -285,9 +281,9 @@ This is an automated notification from the Tinkercademy onboarding system.
       text: emailContent
     });
 
-    console.log('HR notification sent successfully');
+    console.log('Notification sent successfully');
   } catch (error) {
-    console.error('Failed to send HR notification:', error);
+    console.error('Failed to send notification:', error);
     // Don't throw error - email failure shouldn't break the main flow
   }
 };
@@ -496,7 +492,7 @@ exports.handler = async (event) => {
       // Continue - employee creation succeeded even if job creation failed
     }
     
-    // Send HR notification email
+    // Send notification email
     await sendHRNotification(formData, employeeId, jobResult ? jobResult.id : null, talenoxData.employee_id);
     
     return {
