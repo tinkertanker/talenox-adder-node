@@ -288,6 +288,61 @@ This is an automated notification from the Tinkercademy onboarding system.
   }
 };
 
+// Send failure notification email
+const sendFailureNotification = async (formData, errorType, errorDetails) => {
+  // Check if Resend is configured
+  if (!process.env.RESEND_API_KEY || !process.env.NOTIFY_EMAIL) {
+    console.log('Resend not configured, skipping failure notification');
+    return;
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    const employeeTypeText = {
+      'trainer': 'Freelance Trainer',
+      'intern_school': 'Intern with School Letter',
+      'intern_no_school': 'Intern without School Letter',
+      'fulltime': 'Full-time Employee'
+    };
+
+    const emailContent = `
+FAILED Employee Onboarding Submission
+
+Employee Details:
+- Name: ${formData.fullName || 'Not provided'}
+- Employee Type: ${employeeTypeText[formData.employeeType] || formData.employeeType || 'Unknown'}
+- Email: ${formData.email || 'Not provided'}
+- Nationality: ${formData.nationality || 'Not provided'}
+- Citizenship Status: ${formData.citizenshipStatus || 'Not provided'}
+
+Failure Details:
+- Error Type: ${errorType}
+- Error Message: ${errorDetails}
+- Timestamp: ${new Date().toISOString()}
+
+Action Required:
+- Review the error details above
+- Check if this requires manual intervention
+- Contact the employee if needed to resubmit
+
+This is an automated failure alert from the Tinkercademy onboarding system.
+    `.trim();
+
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
+      to: [process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com'],
+      subject: `⚠️ FAILED Onboarding: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
+      text: emailContent
+    });
+
+    console.log('Failure notification sent successfully');
+  } catch (error) {
+    console.error('Failed to send failure notification:', error);
+    // Don't throw error - failure notification failure shouldn't break anything
+  }
+};
+
 // Transform data for Talenox API
 const transformForTalenox = async (formData) => {
   // Nationality is defaulted to Singaporean for all employees
@@ -404,6 +459,9 @@ exports.handler = async (event) => {
     // Validate form data
     const validationErrors = validateFormData(formData);
     if (validationErrors.length > 0) {
+      // Send failure notification for validation errors
+      await sendFailureNotification(formData, 'Validation Error', validationErrors.join(', '));
+      
       return {
         statusCode: 400,
         headers: {
@@ -465,6 +523,9 @@ exports.handler = async (event) => {
         // Not JSON error response
       }
       
+      // Send failure notification for Talenox API errors
+      await sendFailureNotification(formData, 'Talenox API Error', `${errorMessage} (Status: ${talenoxResponse.status})`);
+      
       return {
         statusCode: 500,
         headers: {
@@ -512,6 +573,14 @@ exports.handler = async (event) => {
   } catch (error) {
     console.error('Function error:', error);
     console.error('Error stack:', error.stack);
+    
+    // Send failure notification for unexpected errors
+    try {
+      const formData = JSON.parse(event.body || '{}');
+      await sendFailureNotification(formData, 'System Error', `Unexpected error: ${error.message}`);
+    } catch (notificationError) {
+      console.error('Failed to send failure notification:', notificationError);
+    }
     
     return {
       statusCode: 500,
