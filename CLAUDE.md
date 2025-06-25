@@ -174,7 +174,7 @@ npm run dev
 TALENOX_API_KEY=your_talenox_api_key
 TALENOX_API_URL=https://api.talenox.com/api/v2
 RESEND_API_KEY=your_resend_api_key
-HR_EMAIL=hr.onboarding@tinkertanker.com
+NOTIFY_EMAIL=hr.onboarding@tinkertanker.com
 FROM_EMAIL=Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>
 ```
 
