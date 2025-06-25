@@ -233,7 +233,7 @@ const getNextEmployeeId = async () => {
 };
 
 // Send HR notification email
-const sendHRNotification = async (formData, employeeId, jobId) => {
+const sendHRNotification = async (formData, talenoxEmployeeId, jobId, internalEmployeeId) => {
   // Check if Resend is configured
   if (!process.env.RESEND_API_KEY || !process.env.HR_EMAIL) {
     console.log('Resend not configured, skipping HR notification');
@@ -241,6 +241,10 @@ const sendHRNotification = async (formData, employeeId, jobId) => {
   }
 
   try {
+    console.log('Attempting to send HR notification email...');
+    console.log('FROM_EMAIL:', process.env.FROM_EMAIL || 'default');
+    console.log('HR_EMAIL:', process.env.HR_EMAIL || 'default');
+    
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const employeeTypeText = {
@@ -261,7 +265,8 @@ Employee Details:
 - Citizenship Status: ${formData.citizenshipStatus || 'Not specified'}
 
 Talenox Integration:
-- Employee ID: ${employeeId}
+- Internal Employee ID: ${internalEmployeeId}
+- Talenox Database ID: ${talenoxEmployeeId}
 - Job ID: ${jobId}
 - Status: Successfully created with automatic user account invitation
 
@@ -274,8 +279,8 @@ This is an automated notification from the Tinkercademy onboarding system.
     `.trim();
 
     await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <onboarding@tinkercademy.com>',
-      to: [process.env.HR_EMAIL],
+      from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
+      to: [process.env.HR_EMAIL || 'hr.onboarding@tinkertanker.com'],
       subject: `New Employee: ${formData.fullName} (${employeeTypeText[formData.employeeType] || formData.employeeType})`,
       text: emailContent
     });
@@ -492,7 +497,7 @@ exports.handler = async (event) => {
     }
     
     // Send HR notification email
-    await sendHRNotification(formData, employeeId, jobResult ? jobResult.id : null);
+    await sendHRNotification(formData, employeeId, jobResult ? jobResult.id : null, talenoxData.employee_id);
     
     return {
       statusCode: 200,
