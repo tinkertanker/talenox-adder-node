@@ -27,6 +27,7 @@ body {
 }
 
 .logo {
+    max-width: 100%;
     width: 400px;
     height: auto;
     margin-bottom: 20px;
@@ -217,6 +218,11 @@ h2:first-of-type {
     
     .header, form {
         padding: 20px;
+    }
+    
+    .logo {
+        width: 100%;
+        max-width: 320px;
     }
     
     .header h1 {
