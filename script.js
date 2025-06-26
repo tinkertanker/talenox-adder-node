@@ -159,8 +159,21 @@ async function submitToNetlify(data) {
     } catch (error) {
         console.error('Submission error:', error);
         
-        // Show error message
-        alert('Error submitting form: ' + error.message + '\n\nPlease try again or contact support.');
+        // Try to get more specific error info from the response
+        let errorMessage = error.message;
+        let errorDetails = 'Please try again or contact support.';
+        
+        if (result && result.details) {
+            errorDetails = result.details;
+        }
+        
+        if (result && result.errorType === 'duplicate') {
+            errorMessage = 'Already Registered';
+            errorDetails = result.details || 'It looks like you\'re already in our system. Please contact HR at hr.onboarding@tinkertanker.com instead of resubmitting.';
+        }
+        
+        // Show error message with better formatting
+        alert(`${errorMessage}\n\n${errorDetails}`);
         
         // Reset button
         submitButton.textContent = originalText;

@@ -513,18 +513,40 @@ exports.handler = async (event) => {
       console.error('Talenox API error:', talenoxResponse.status, errorText);
       
       let errorMessage = 'Failed to create employee in Talenox';
+      let errorDetails = errorText;
+      let errorType = 'unknown';
+      
       try {
         const errorData = JSON.parse(errorText);
-        console.error('Error details:', errorData);
-        if (errorData.message) {
+        console.error('Talenox Error Response:', {
+          status: talenoxResponse.status,
+          data: errorData,
+          headers: Object.fromEntries(talenoxResponse.headers.entries())
+        });
+        
+        // Try to detect duplicate submissions based on common patterns
+        const errorString = JSON.stringify(errorData).toLowerCase();
+        if (errorString.includes('duplicate') || 
+            errorString.includes('already exist') || 
+            errorString.includes('has already been taken') ||
+            errorString.includes('unique')) {
+          errorType = 'duplicate';
+          errorMessage = 'This employee may already be registered';
+          errorDetails = 'If you\'ve already submitted this form, please contact HR at hr.onboarding@tinkertanker.com instead of resubmitting.';
+        } else if (errorData.message) {
           errorMessage = errorData.message;
         }
       } catch (e) {
         // Not JSON error response
+        console.error('Non-JSON error response:', errorText);
       }
       
       // Send failure notification for Talenox API errors
-      await sendFailureNotification(formData, 'Talenox API Error', `${errorMessage} (Status: ${talenoxResponse.status})`);
+      await sendFailureNotification(
+        formData, 
+        `Talenox API Error (${errorType})`, 
+        `${errorMessage} (Status: ${talenoxResponse.status})\nRaw Response: ${errorText.substring(0, 500)}`
+      );
       
       return {
         statusCode: 500,
@@ -534,7 +556,8 @@ exports.handler = async (event) => {
         },
         body: JSON.stringify({
           error: errorMessage,
-          details: 'Please check the data and try again'
+          details: errorType === 'duplicate' ? errorDetails : 'Please check the data and try again',
+          errorType: errorType
         })
       };
     }
