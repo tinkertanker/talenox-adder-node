@@ -163,7 +163,8 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate)
 // Get next employee ID by querying existing employees
 const getNextEmployeeId = async () => {
   try {
-    const response = await fetch(`${process.env.TALENOX_API_URL}/employees`, {
+    // Fetch only recent employees to find the highest ID (faster)
+    const response = await fetch(`${process.env.TALENOX_API_URL}/employees?per=50&sort=-created_at`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.TALENOX_API_KEY}`,
@@ -450,6 +451,8 @@ exports.handler = async (event) => {
   }
   
   try {
+    const startTime = Date.now();
+    
     // Parse request body
     const formData = JSON.parse(event.body);
     
@@ -459,8 +462,10 @@ exports.handler = async (event) => {
     // Validate form data
     const validationErrors = validateFormData(formData);
     if (validationErrors.length > 0) {
-      // Send failure notification for validation errors
-      await sendFailureNotification(formData, 'Validation Error', validationErrors.join(', '));
+      // Send failure notification for validation errors (fire and forget)
+      sendFailureNotification(formData, 'Validation Error', validationErrors.join(', ')).catch(err => 
+        console.error('Failed to send validation error notification:', err)
+      );
       
       return {
         statusCode: 400,
@@ -475,8 +480,12 @@ exports.handler = async (event) => {
       };
     }
     
-    // Transform data for Talenox
+    console.log(`[Timing] Validation completed in ${Date.now() - startTime}ms`);
+    
+    // Transform data for Talenox (including employee ID generation)
+    const transformStart = Date.now();
     const talenoxData = await transformForTalenox(formData);
+    console.log(`[Timing] Data transformation completed in ${Date.now() - transformStart}ms`);
     
     // Check if API key is configured
     if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
@@ -541,12 +550,12 @@ exports.handler = async (event) => {
         console.error('Non-JSON error response:', errorText);
       }
       
-      // Send failure notification for Talenox API errors
-      await sendFailureNotification(
+      // Send failure notification for Talenox API errors (fire and forget)
+      sendFailureNotification(
         formData, 
         `Talenox API Error (${errorType})`, 
         `${errorMessage} (Status: ${talenoxResponse.status})\nRaw Response: ${errorText.substring(0, 500)}`
-      );
+      ).catch(err => console.error('Failed to send Talenox error notification:', err));
       
       return {
         statusCode: 500,
@@ -565,19 +574,29 @@ exports.handler = async (event) => {
     const talenoxResult = await talenoxResponse.json();
     const employeeId = talenoxResult.id || talenoxResult.employee_id;
     console.log('Employee created successfully with ID:', employeeId);
+    console.log(`[Timing] Employee creation completed in ${Date.now() - startTime}ms`);
     
-    // Create job for the employee
-    let jobResult = null;
-    try {
-      jobResult = await createJobForEmployee(employeeId, formData, talenoxData.hired_date, talenoxData.resign_date);
+    // Create job for the employee and send notification email in parallel
+    const jobStart = Date.now();
+    const [jobResult] = await Promise.allSettled([
+      createJobForEmployee(employeeId, formData, talenoxData.hired_date, talenoxData.resign_date),
+      sendHRNotification(formData, employeeId, null, talenoxData.employee_id).catch(err => 
+        console.error('Failed to send HR notification:', err)
+      )
+    ]);
+    
+    console.log(`[Timing] Job creation completed in ${Date.now() - jobStart}ms`);
+    console.log(`[Timing] Total execution time: ${Date.now() - startTime}ms`);
+    
+    // Check job result
+    const jobCreated = jobResult.status === 'fulfilled';
+    const jobId = jobCreated ? jobResult.value?.id : null;
+    
+    if (!jobCreated) {
+      console.error('Job creation failed, but employee was created:', jobResult.reason);
+    } else {
       console.log('Job created successfully for employee:', employeeId);
-    } catch (jobError) {
-      console.error('Job creation failed, but employee was created:', jobError);
-      // Continue - employee creation succeeded even if job creation failed
     }
-    
-    // Send notification email
-    await sendHRNotification(formData, employeeId, jobResult ? jobResult.id : null, talenoxData.employee_id);
     
     return {
       statusCode: 200,
@@ -587,9 +606,9 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         success: true,
-        message: jobResult ? 'Employee and job created successfully' : 'Employee created successfully (job creation failed)',
+        message: jobCreated ? 'Employee and job created successfully' : 'Employee created successfully (job creation failed)',
         employeeId: employeeId || 'Unknown',
-        jobId: jobResult ? jobResult.id : null
+        jobId: jobId
       })
     };
     
@@ -597,12 +616,13 @@ exports.handler = async (event) => {
     console.error('Function error:', error);
     console.error('Error stack:', error.stack);
     
-    // Send failure notification for unexpected errors
+    // Send failure notification for unexpected errors (fire and forget)
     try {
       const formData = JSON.parse(event.body || '{}');
-      await sendFailureNotification(formData, 'System Error', `Unexpected error: ${error.message}`);
-    } catch (notificationError) {
-      console.error('Failed to send failure notification:', notificationError);
+      sendFailureNotification(formData, 'System Error', `Unexpected error: ${error.message}`)
+        .catch(err => console.error('Failed to send system error notification:', err));
+    } catch (parseError) {
+      console.error('Failed to parse form data for error notification:', parseError);
     }
     
     return {
