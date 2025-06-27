@@ -135,13 +135,20 @@ async function submitToNetlify(data) {
     submitButton.disabled = true;
     
     try {
+        // Add timeout to prevent hanging (60 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        
         const response = await fetch('/.netlify/functions/submit-onboarding', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         const result = await response.json();
         
@@ -158,6 +165,14 @@ async function submitToNetlify(data) {
         
     } catch (error) {
         console.error('Submission error:', error);
+        
+        // Handle timeout specifically
+        if (error.name === 'AbortError') {
+            alert('Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check your email for confirmation before trying again, or contact HR at hr.onboarding@tinkertanker.com');
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+            return;
+        }
         
         // Try to get more specific error info from the response
         let errorMessage = error.message;
