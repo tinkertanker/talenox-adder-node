@@ -46,9 +46,11 @@
             </div>
 
             <div class="form-group">
-                <label for="nric">NRIC/FIN Number *</label>
-                <input type="text" id="nric" name="nric" required>
-                <small>Singapore NRIC or FIN number</small>
+                <label for="nric">NRIC/FIN Number (Full 9 characters) *</label>
+                <input type="text" id="nric" name="nric" placeholder="S1234567A or T1234567B" maxlength="9" required>
+                <small style="color: #666; font-size: 0.9em;">
+                    Enter your complete 9-character NRIC/FIN (e.g., S1234567A). <strong>Do not enter only the last 4 digits.</strong>
+                </small>
             </div>
 
             <div class="form-group">

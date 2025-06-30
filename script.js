@@ -20,8 +20,19 @@ function validateForm() {
     }
     
     const nricField = document.getElementById('nric');
-    if (!nricField.value.trim()) {
+    const nricValue = nricField.value.trim().toUpperCase();
+    if (!nricValue) {
         showError(nricField, 'Please provide NRIC/FIN number');
+        isValid = false;
+    } else if (nricValue.length !== 9) {
+        if (nricValue.length === 4 && /^\d{4}$/.test(nricValue)) {
+            showError(nricField, 'Please enter your complete 9-character NRIC/FIN, not just the last 4 digits');
+        } else {
+            showError(nricField, 'NRIC/FIN must be exactly 9 characters (e.g., S1234567A)');
+        }
+        isValid = false;
+    } else if (!/^[STFGM]\d{7}[A-Z]$/i.test(nricValue)) {
+        showError(nricField, 'Invalid format. NRIC/FIN should start with S, T, F, G, or M followed by 7 digits and 1 letter');
         isValid = false;
     }
     

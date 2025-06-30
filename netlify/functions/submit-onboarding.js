@@ -35,9 +35,18 @@ const validateFormData = (data) => {
   if (!data.accountName) errors.push('Account name is required');
   if (!data.accountNumber) errors.push('Account number is required');
   
-  // Validate NRIC format
-  if (data.nric && !validateNRIC(data.nric)) {
-    errors.push('Invalid NRIC/FIN format');
+  // Validate NRIC format with specific error messages
+  if (data.nric) {
+    const nricValue = data.nric.trim();
+    if (nricValue.length !== 9) {
+      if (nricValue.length === 4 && /^\d{4}$/.test(nricValue)) {
+        errors.push('Please enter your complete 9-character NRIC/FIN, not just the last 4 digits');
+      } else {
+        errors.push('NRIC/FIN must be exactly 9 characters (e.g., S1234567A)');
+      }
+    } else if (!validateNRIC(nricValue)) {
+      errors.push('Invalid NRIC/FIN format. It should start with S, T, F, G, or M followed by 7 digits and 1 letter');
+    }
   }
   
   // Validate email format
@@ -462,8 +471,12 @@ exports.handler = async (event) => {
     // Validate form data
     const validationErrors = validateFormData(formData);
     if (validationErrors.length > 0) {
-      // Send failure notification for validation errors (fire and forget)
-      sendFailureNotification(formData, 'Validation Error', validationErrors.join(', ')).catch(err => 
+      // Send failure notification for validation errors with submitted data (fire and forget)
+      const errorDetails = validationErrors.join(', ') + 
+        `\n\nSubmitted NRIC/FIN: "${formData.nric || 'not provided'}"` +
+        `\nSubmitted by: ${formData.fullName || 'unknown'} (${formData.email || 'no email'})`;
+      
+      sendFailureNotification(formData, 'Validation Error', errorDetails).catch(err => 
         console.error('Failed to send validation error notification:', err)
       );
       
