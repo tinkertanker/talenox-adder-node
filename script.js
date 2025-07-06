@@ -138,28 +138,57 @@ document.getElementById('employeeType').addEventListener('change', function() {
     }
 });
 
+// Track if submission is in progress to prevent multiple submissions
+let isSubmitting = false;
+
 async function submitToNetlify(data) {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+        console.log('Submission already in progress, ignoring duplicate request');
+        return;
+    }
+    
+    isSubmitting = true;
+    
     // Show loading state
     const submitButton = document.querySelector('.btn-submit');
     const originalText = submitButton.textContent;
     submitButton.textContent = 'Submitting...';
     submitButton.disabled = true;
     
+    // Add a hard timeout failsafe
+    const hardTimeoutId = setTimeout(() => {
+        if (isSubmitting) {
+            alert('Submission is taking longer than expected.\n\nYour submission may still be processing. Please check your email for confirmation.\n\nIf you don\'t receive confirmation within 5 minutes, please contact HR at hr.onboarding@tinkertanker.com');
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+            isSubmitting = false;
+        }
+    }, 90000); // 90 seconds hard timeout
+    
     try {
         // Add timeout to prevent hanging (60 seconds)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const controller = window.AbortController ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
         
-        const response = await fetch('/.netlify/functions/submit-onboarding', {
+        const fetchOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(data),
-            signal: controller.signal
-        });
+            body: JSON.stringify(data)
+        };
         
-        clearTimeout(timeoutId);
+        // Only add signal if AbortController is supported
+        if (controller) {
+            fetchOptions.signal = controller.signal;
+        }
+        
+        const response = await fetch('/.netlify/functions/submit-onboarding', fetchOptions);
+        
+        // Clear timeouts
+        if (timeoutId) clearTimeout(timeoutId);
+        clearTimeout(hardTimeoutId);
         
         const result = await response.json();
         
@@ -174,14 +203,21 @@ async function submitToNetlify(data) {
         // Scroll to top
         window.scrollTo(0, 0);
         
+        // Reset submission flag
+        isSubmitting = false;
+        
     } catch (error) {
         console.error('Submission error:', error);
+        
+        // Clear hard timeout
+        clearTimeout(hardTimeoutId);
         
         // Handle timeout specifically
         if (error.name === 'AbortError') {
             alert('Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check your email for confirmation before trying again, or contact HR at hr.onboarding@tinkertanker.com');
             submitButton.textContent = originalText;
             submitButton.disabled = false;
+            isSubmitting = false;
             return;
         }
         
@@ -204,6 +240,7 @@ async function submitToNetlify(data) {
         // Reset button
         submitButton.textContent = originalText;
         submitButton.disabled = false;
+        isSubmitting = false;
     }
 }
 
