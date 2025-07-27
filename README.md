@@ -12,6 +12,7 @@ This system completely automates the employee onboarding process by:
 - **Sending HR notifications** with employee details and internal IDs
 - Supporting **200+ nationalities** with proper citizenship status mapping
 - Handling **all major Singapore banks** with correct Talenox formatting
+- **Background processing** with 15-minute timeout for reliable API operations
 
 ## Current Process vs. Automated Process
 
@@ -177,7 +178,9 @@ npm run dev
 - Black (#000) and salmon (#FA8072) color theme
 - Responsive design
 
-### Backend (Netlify Functions)
+### Backend (Netlify Background Functions)
+- **Background Processing**: 15-minute timeout for reliable API operations
+- **Async Processing**: Returns 202 immediately, processes in background
 - **Production Talenox Integration**: Live API calls to create employees and jobs
 - **Email Notifications**: Resend.com integration for HR alerts
 - **Auto-incrementing IDs**: Sequential employee ID generation (300+ range)
@@ -204,7 +207,8 @@ freelancer-adder/
 ├── .env.example            # Environment variables template
 ├── netlify/
 │   └── functions/
-│       └── submit-onboarding.js  # Serverless API handler
+│       ├── submit-onboarding.js           # Original function (kept for compatibility)
+│       └── submit-onboarding-background.js # Background function with 15-min timeout
 ├── README.md               # This file
 └── CLAUDE.md               # Development notes
 ```
@@ -227,6 +231,28 @@ freelancer-adder/
   "details": ["Start date is required for interns"]
 }
 ```
+
+## Background Processing
+
+As of the latest update, the system uses **Netlify Background Functions** to handle long-running operations:
+
+### How It Works
+1. User submits form → Immediate 202 Accepted response
+2. System processes in background (up to 15 minutes)
+3. Creates employee → Creates job → Sends notifications
+4. User sees "processing" message with instructions
+
+### Benefits
+- **No more timeouts**: 15-minute limit vs 10-second regular functions
+- **Better reliability**: Handles slow API responses gracefully
+- **Same code**: Minimal changes from regular functions
+- **Automatic retry**: Built-in error handling
+
+### User Experience
+- Form submission feels instant (< 1 second)
+- Clear messaging about background processing
+- Instructions to check email for confirmation
+- HR contact info if issues arise
 
 ## Troubleshooting
 

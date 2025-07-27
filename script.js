@@ -184,7 +184,7 @@ async function submitToNetlify(data) {
             fetchOptions.signal = controller.signal;
         }
         
-        const response = await fetch('/.netlify/functions/submit-onboarding', fetchOptions);
+        const response = await fetch('/.netlify/functions/submit-onboarding-background', fetchOptions);
         
         // Clear timeouts
         if (timeoutId) clearTimeout(timeoutId);
@@ -192,7 +192,8 @@ async function submitToNetlify(data) {
         
         const result = await response.json();
         
-        if (!response.ok) {
+        // Accept both 200 (compatibility) and 202 (background processing)
+        if (!response.ok && response.status !== 202) {
             throw new Error(result.error || 'Submission failed');
         }
         
