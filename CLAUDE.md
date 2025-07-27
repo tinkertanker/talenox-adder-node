@@ -3,7 +3,7 @@
 ## Project Overview
 This project creates a simplified onboarding form for Tinkercademy employees that integrates with the Talenox API to automate employee data entry.
 
-## Current Status (Updated: June 2025)
+## Current Status (Updated: July 2025)
 
 ### Completed ✅
 
@@ -25,7 +25,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Loading states and error handling
 
 #### Backend (PRODUCTION-READY)
-- Netlify Functions serverless architecture
+- Netlify Background Functions serverless architecture (15-min timeout)
 - Complete form validation with NRIC/FIN format checking
 - PDPA-compliant data handling (sensitive data redaction)
 - **Live Talenox API integration** with optimized field mapping
@@ -45,6 +45,9 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Comprehensive documentation
 
 ### Recently Completed ✅
+- **Background Functions Migration** - 15-minute timeout vs 10-second regular functions
+- **Async Processing** - Returns 202 immediately, processes in background
+- **Updated User Experience** - Clear messaging about background processing
 - **Citizenship field mapping** for all employee types (Contract/Intern/Singapore Citizen/Singapore PR)
 - **Comprehensive nationality list** with 200+ countries from Talenox
 - **HR email notifications** using Resend API with PDPA-compliant content
