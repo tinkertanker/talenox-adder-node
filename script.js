@@ -141,6 +141,12 @@ document.getElementById('employeeType').addEventListener('change', function() {
 // Track if submission is in progress to prevent multiple submissions
 let isSubmitting = false;
 
+// HTTP status code constants
+const HTTP_STATUS = {
+    OK: 200,
+    ACCEPTED: 202
+};
+
 async function submitToNetlify(data) {
     // Prevent multiple submissions
     if (isSubmitting) {
@@ -193,7 +199,7 @@ async function submitToNetlify(data) {
         const result = await response.json();
         
         // Accept both 200 (compatibility) and 202 (background processing)
-        if (!response.ok && response.status !== 202) {
+        if (!response.ok && response.status !== HTTP_STATUS.ACCEPTED) {
             throw new Error(result.error || 'Submission failed');
         }
         

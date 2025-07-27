@@ -81,7 +81,7 @@ const validateFormData = (data) => {
 };
 
 // Create job for employee based on employee type
-const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate) => {
+const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate, requestId = 'unknown') => {
   try {
     // Calculate job start and end dates based on employee type
     let jobStartDate, jobEndDate, jobTitle, amount, department;
@@ -141,7 +141,7 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate)
       }
     };
     
-    console.log('Creating job for employee:', employeeId, 'with data:', jobData);
+    console.log(`[${requestId}] Creating job for employee:`, employeeId, 'with data:', jobData);
     
     const jobResponse = await fetch(`${process.env.TALENOX_API_URL}/jobs`, {
       method: 'POST',
@@ -155,7 +155,7 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate)
     
     if (jobResponse.ok) {
       const jobResult = await jobResponse.json();
-      console.log('Job created successfully:', jobResult.id);
+      console.log(`[${requestId}] Job created successfully:`, jobResult.id);
       return jobResult;
     } else {
       const errorText = await jobResponse.text();
@@ -168,6 +168,9 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate)
     throw error;
   }
 };
+
+// Maximum employee ID to consider valid (filters out database IDs)
+const MAX_VALID_EMPLOYEE_ID = 10000;
 
 // Get next employee ID by querying existing employees
 const getNextEmployeeId = async () => {
@@ -185,8 +188,8 @@ const getNextEmployeeId = async () => {
       const employees = await response.json();
       console.log('Found', employees.length || 0, 'existing employees');
       
-      // Log sample employee structure for debugging (first run only)
-      if (employees && employees.length > 0 && Math.random() < 0.1) {
+      // Log sample employee structure for debugging (only in development)
+      if (employees && employees.length > 0 && process.env.NODE_ENV === 'development') {
         console.log('Sample employee object:', JSON.stringify(employees[0], null, 2));
       }
       
@@ -213,7 +216,7 @@ const getNextEmployeeId = async () => {
           if (foundId) {
             employeeIds.push(foundId);
             const numericId = parseInt(foundId.toString().replace(/\D/g, ''), 10);
-            if (!isNaN(numericId) && numericId > maxEmployeeId && numericId < 10000) { // Filter out large database IDs
+            if (!isNaN(numericId) && numericId > maxEmployeeId && numericId < MAX_VALID_EMPLOYEE_ID) { // Filter out large database IDs
               maxEmployeeId = numericId;
             }
           }
@@ -434,18 +437,6 @@ const transformForTalenox = async (formData) => {
 
 // Main handler function for background processing
 exports.handler = async (event) => {
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-  
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -459,13 +450,30 @@ exports.handler = async (event) => {
     };
   }
   
+  // Only allow POST requests (after OPTIONS check)
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+  
   // Parse and validate quickly, then return 202 immediately
   try {
     const formData = JSON.parse(event.body);
     
+    // Generate unique request ID for tracking
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    console.log(`[${requestId}] New submission request received`);
+    
     // Quick validation before accepting
     const validationErrors = validateFormData(formData);
     if (validationErrors.length > 0) {
+      console.log(`[${requestId}] Validation failed:`, validationErrors);
       return {
         statusCode: 400,
         headers: {
@@ -474,20 +482,21 @@ exports.handler = async (event) => {
         },
         body: JSON.stringify({ 
           error: 'Validation failed', 
-          details: validationErrors 
+          details: validationErrors,
+          requestId: requestId 
         })
       };
     }
     
     // Return 202 Accepted immediately for background processing
-    console.log('Accepted submission for background processing:', redactSensitiveData(formData));
+    console.log(`[${requestId}] Accepted submission for background processing:`, redactSensitiveData(formData));
     
     // Process in background after returning (this runs up to 15 minutes)
-    processOnboarding(formData).catch(error => {
-      console.error('Background processing failed:', error);
+    processOnboarding(formData, requestId).catch(error => {
+      console.error(`[${requestId}] Background processing failed:`, error);
       // Send failure notification
       sendFailureNotification(formData, 'Background Processing Error', error.message)
-        .catch(err => console.error('Failed to send error notification:', err));
+        .catch(err => console.error(`[${requestId}] Failed to send error notification:`, err));
     });
     
     // Return immediately - client gets this response right away
@@ -499,7 +508,8 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         success: true,
-        message: 'Your submission has been accepted and is being processed. You will receive a confirmation email shortly.'
+        message: 'Your submission has been accepted and is being processed. You will receive a confirmation email shortly.',
+        requestId: requestId
       })
     };
     
@@ -520,27 +530,27 @@ exports.handler = async (event) => {
 };
 
 // Background processing function - runs after 202 response
-async function processOnboarding(formData) {
+async function processOnboarding(formData, requestId) {
   try {
     const startTime = Date.now();
     
     // Log request (with sensitive data redacted)
-    console.log('Processing submission in background:', redactSensitiveData(formData));
+    console.log(`[${requestId}] Processing submission in background:`, redactSensitiveData(formData));
     
     // Transform data for Talenox (including employee ID generation)
     const transformStart = Date.now();
     const talenoxData = await transformForTalenox(formData);
-    console.log(`[Timing] Data transformation completed in ${Date.now() - transformStart}ms`);
+    console.log(`[${requestId}] [Timing] Data transformation completed in ${Date.now() - transformStart}ms`);
     
     // Check if API key is configured
     if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
-      console.error('Talenox API credentials not configured');
+      console.error(`[${requestId}] Talenox API credentials not configured`);
       throw new Error('Talenox API is not properly configured');
     }
     
     // Call Talenox API
-    console.log('Creating employee via Talenox API');
-    console.log('Sending data:', redactSensitiveData(talenoxData));
+    console.log(`[${requestId}] Creating employee via Talenox API`);
+    console.log(`[${requestId}] Sending data:`, redactSensitiveData(talenoxData));
     
     const talenoxResponse = await fetch(`${process.env.TALENOX_API_URL}/employees`, {
       method: 'POST',
@@ -597,32 +607,32 @@ async function processOnboarding(formData) {
     
     const talenoxResult = await talenoxResponse.json();
     const employeeId = talenoxResult.id || talenoxResult.employee_id;
-    console.log('Employee created successfully with ID:', employeeId);
-    console.log(`[Timing] Employee creation completed in ${Date.now() - startTime}ms`);
+    console.log(`[${requestId}] Employee created successfully with ID:`, employeeId);
+    console.log(`[${requestId}] [Timing] Employee creation completed in ${Date.now() - startTime}ms`);
     
     // Create job for the employee and send notification email in parallel
     const jobStart = Date.now();
     const [jobResult] = await Promise.allSettled([
-      createJobForEmployee(employeeId, formData, talenoxData.hired_date, talenoxData.resign_date),
+      createJobForEmployee(employeeId, formData, talenoxData.hired_date, talenoxData.resign_date, requestId),
       sendHRNotification(formData, employeeId, null, talenoxData.employee_id).catch(err => 
         console.error('Failed to send HR notification:', err)
       )
     ]);
     
-    console.log(`[Timing] Job creation completed in ${Date.now() - jobStart}ms`);
-    console.log(`[Timing] Total execution time: ${Date.now() - startTime}ms`);
+    console.log(`[${requestId}] [Timing] Job creation completed in ${Date.now() - jobStart}ms`);
+    console.log(`[${requestId}] [Timing] Total execution time: ${Date.now() - startTime}ms`);
     
     // Check job result
     const jobCreated = jobResult.status === 'fulfilled';
     const jobId = jobCreated ? jobResult.value?.id : null;
     
     if (!jobCreated) {
-      console.error('Job creation failed, but employee was created:', jobResult.reason);
+      console.error(`[${requestId}] Job creation failed, but employee was created:`, jobResult.reason);
     } else {
-      console.log('Job created successfully for employee:', employeeId);
+      console.log(`[${requestId}] Job created successfully for employee:`, employeeId);
     }
     
-    console.log('Background processing completed successfully');
+    console.log(`[${requestId}] Background processing completed successfully`);
     return {
       success: true,
       employeeId: employeeId,
@@ -631,8 +641,8 @@ async function processOnboarding(formData) {
     };
     
   } catch (error) {
-    console.error('Background processing error:', error);
-    console.error('Error stack:', error.stack);
+    console.error(`[${requestId}] Background processing error:`, error);
+    console.error(`[${requestId}] Error stack:`, error.stack);
     
     // Send failure notification for unexpected errors
     await sendFailureNotification(formData, 'System Error', `Unexpected error: ${error.message}`);
