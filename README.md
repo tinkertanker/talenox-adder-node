@@ -205,6 +205,10 @@ freelancer-adder/
 ├── netlify.toml            # Netlify configuration
 ├── package.json            # Node.js dependencies
 ├── .env.example            # Environment variables template
+├── docs/                   # Documentation
+│   ├── BACKGROUND_FUNCTIONS_SUMMARY.md    # Background Functions migration guide
+│   ├── EDGE_FUNCTIONS_MIGRATION_PLAN.md   # Edge Functions analysis
+│   └── SELF_HOSTING_MIGRATION.md          # Self-hosting analysis
 ├── netlify/
 │   └── functions/
 │       ├── submit-onboarding.js           # Original function (kept for compatibility)
