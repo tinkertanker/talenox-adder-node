@@ -190,7 +190,7 @@ async function submitToNetlify(data) {
             fetchOptions.signal = controller.signal;
         }
         
-        const response = await fetch('/.netlify/functions/submit-onboarding-background', fetchOptions);
+        const response = await fetch('/api/submit-onboarding', fetchOptions);
         
         // Clear timeouts
         if (timeoutId) clearTimeout(timeoutId);
