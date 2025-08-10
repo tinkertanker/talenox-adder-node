@@ -25,7 +25,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Loading states and error handling
 
 #### Backend (PRODUCTION-READY)
-- Netlify Background Functions serverless architecture (15-min timeout)
+- Express.js server with Docker containerization
 - Complete form validation with NRIC/FIN format checking
 - PDPA-compliant data handling (sensitive data redaction)
 - **Live Talenox API integration** with optimized field mapping
@@ -39,14 +39,14 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - Environment variable configuration and security headers
 
 #### Deployment Setup (NEW)
-- Netlify configuration (`netlify.toml`)
-- Local development setup with Netlify CLI
+- Docker configuration (`Dockerfile`, `docker-compose.yml`)
+- Local development with Express.js
 - Environment variables template
 - Comprehensive documentation
 
 ### Recently Completed ✅
-- **Background Functions Migration** - 15-minute timeout vs 10-second regular functions
-- **Async Processing** - Returns 202 immediately, processes in background
+- **Docker Migration** - Migrated from Netlify Functions to dockerized Express.js
+- **Self-hosting Ready** - Configured for deployment on dev.tk.sg infrastructure
 - **Updated User Experience** - Clear messaging about background processing
 - **Citizenship field mapping** for all employee types (Contract/Intern/Singapore Citizen/Singapore PR)
 - **Comprehensive nationality list** with 200+ countries from Talenox
@@ -81,8 +81,9 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **State Management**: Form data collected and transformed before submission
 - **Error Handling**: User-friendly error messages with retry capability
 
-### Backend Architecture (Netlify Functions)
-- **Serverless Function**: `submit-onboarding.js` handles all API logic
+### Backend Architecture (Express.js)
+- **Express Server**: `server.js` handles routing and middleware
+- **API Handler**: `backend/submit-onboarding.js` handles all API logic
 - **Validation Layer**: Server-side validation ensures data integrity
 - **Data Transformation**: Converts form data to Talenox API format
 - **Security**: 
@@ -100,7 +101,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 
 ### Data Flow
 1. User fills form → Client-side validation
-2. Submit to `/.netlify/functions/submit-onboarding`
+2. Submit to `/api/submit-onboarding`
 3. Server-side validation and transformation
 4. Call Talenox API (when credentials available)
 5. Return success/error response
@@ -167,26 +168,29 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 
 ### Local Development
 ```bash
-# Install Netlify CLI globally
-npm install -g netlify-cli
+# Install dependencies
+npm install
 
 # Run the development server
 npm run dev
 
-# Test the function locally
-# POST to http://localhost:8888/.netlify/functions/submit-onboarding
+# Or run with Docker
+docker-compose up
+
+# Test the API locally
+# POST to http://localhost:3000/api/submit-onboarding
 ```
 
 ### Adding Features
 1. Frontend changes in `index.html`, `script.js`, `styles.css`
-2. Backend changes in `netlify/functions/submit-onboarding.js`
-3. Test locally with `netlify dev`
+2. Backend changes in `backend/submit-onboarding.js` or `server.js`
+3. Test locally with `npm run dev` or `docker-compose up`
 4. Ensure PDPA compliance for any data handling
 
 ### Environment Variables
 - Never commit `.env` file
 - Use `.env.example` as template
-- Set production variables in Netlify dashboard
+- Set production variables in `.env` file
 - Access via `process.env.VARIABLE_NAME`
 
 #### Required Environment Variables
@@ -217,7 +221,7 @@ FROM_EMAIL=Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>
 
 1. **Development**
    - Make changes locally
-   - Test with `netlify dev`
+   - Test with `npm run dev`
    - Verify all employee types work
 
 2. **Commit & Push**
@@ -227,9 +231,9 @@ FROM_EMAIL=Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>
    git push origin main
    ```
 
-3. **Automatic Deployment**
-   - Netlify auto-deploys on push to main
-   - Check deploy status in Netlify dashboard
+3. **Docker Deployment**
+   - Build and deploy with `docker-compose up -d`
+   - Check container status with `docker-compose ps`
    - View function logs for debugging
 
 4. **Production Testing**
@@ -241,7 +245,7 @@ FROM_EMAIL=Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>
 
 - **NRIC/FIN**: Always validate format, redact in logs
 - **API Keys**: Only store in environment variables
-- **CORS**: Configured in `netlify.toml`
+- **CORS**: Configured in `server.js` with environment variable support
 - **Validation**: Always validate on server-side
 - **Logging**: Never log sensitive data
-- **HTTPS**: Enforced automatically by Netlify
+- **HTTPS**: Handled by nginx-proxy with Let's Encrypt

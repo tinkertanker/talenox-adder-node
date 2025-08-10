@@ -39,7 +39,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // Import the onboarding handler
-const submitOnboarding = require('./netlify/functions/submit-onboarding-background');
+const submitOnboarding = require('./backend/submit-onboarding');
 
 // Convert Netlify function to Express endpoint
 app.post('/api/submit-onboarding', async (req, res) => {

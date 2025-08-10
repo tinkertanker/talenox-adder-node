@@ -133,8 +133,11 @@ npm install
 cp .env.example .env
 # Edit .env with your Talenox API credentials
 
-# Run locally with Netlify Dev
+# Run locally
 npm run dev
+
+# Or with Docker
+docker-compose up
 # Visit http://localhost:8888
 ```
 
@@ -147,15 +150,14 @@ npm run dev
    git push origin main
    ```
 
-2. **Deploy on Netlify**
-   - Sign up/login at [netlify.com](https://netlify.com)
-   - Click "Add new site" → "Import an existing project"
-   - Connect GitHub and select this repository
-   - Deploy settings are auto-configured via `netlify.toml`
-   - Click "Deploy site"
+2. **Deploy with Docker**
+   - Build the Docker image: `docker build -t talenox-onboarding .`
+   - Run with docker-compose: `docker-compose up -d`
+   - Access at configured URL (e.g., https://hr-onboarding.tk.sg)
+   - See DEPLOYMENT.md for detailed deployment instructions
 
 3. **Configure Environment Variables**
-   In Netlify Dashboard → Site settings → Environment variables:
+   Create a `.env` file with the following variables:
    - `TALENOX_API_KEY`: Your Talenox API key
    - `TALENOX_API_URL`: Talenox API endpoint (https://api.talenox.com/api/v2)
    - `RESEND_API_KEY`: Your Resend.com API key for email notifications
@@ -178,7 +180,7 @@ npm run dev
 - Black (#000) and salmon (#FA8072) color theme
 - Responsive design
 
-### Backend (Netlify Background Functions)
+### Backend (Express.js Server)
 - **Background Processing**: 15-minute timeout for reliable API operations
 - **Async Processing**: Returns 202 immediately, processes in background
 - **Production Talenox Integration**: Live API calls to create employees and jobs
@@ -202,17 +204,17 @@ freelancer-adder/
 ├── styles.css              # Styling with black/salmon theme
 ├── script.js               # Form logic and validation
 ├── logo.png                # Tinkercademy logo
-├── netlify.toml            # Netlify configuration
+├── docker-compose.yml      # Docker deployment configuration
+├── Dockerfile              # Docker container definition
+├── server.js               # Express.js server
 ├── package.json            # Node.js dependencies
 ├── .env.example            # Environment variables template
 ├── docs/                   # Documentation
 │   ├── BACKGROUND_FUNCTIONS_SUMMARY.md    # Background Functions migration guide
 │   ├── EDGE_FUNCTIONS_MIGRATION_PLAN.md   # Edge Functions analysis
 │   └── SELF_HOSTING_MIGRATION.md          # Self-hosting analysis
-├── netlify/
-│   └── functions/
-│       ├── submit-onboarding.js           # Original function (kept for compatibility)
-│       └── submit-onboarding-background.js # Background function with 15-min timeout
+├── backend/
+│   └── submit-onboarding.js    # Main API handler
 ├── README.md               # This file
 └── CLAUDE.md               # Development notes
 ```
@@ -238,7 +240,7 @@ freelancer-adder/
 
 ## Background Processing
 
-As of the latest update, the system uses **Netlify Background Functions** to handle long-running operations:
+The system uses an **Express.js server** with Docker containerization for reliable deployment:
 
 ### How It Works
 1. User submits form → Immediate 202 Accepted response
@@ -272,7 +274,7 @@ As of the latest update, the system uses **Netlify Background Functions** to han
    - Ensure dates are logical (end > start)
 
 3. **"Internal server error"**
-   - Check Netlify Function logs
+   - Check Docker logs: `docker-compose logs`
    - Verify environment variables are set
    - Ensure Talenox API is accessible
 
@@ -293,6 +295,6 @@ The form works without Talenox credentials for testing:
 ## Support
 
 For issues or questions:
-- Check Netlify Function logs
+- Check Docker container logs: `docker-compose logs`
 - Review error messages in browser console
 - Contact the development team
