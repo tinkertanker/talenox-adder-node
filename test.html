@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        button {
+            background: #FA8072;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #e96b5a;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+        .error {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+        .info {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .loading {
+            display: none;
+            color: #666;
+            margin-top: 10px;
+        }
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Onboarding API Test Page</h1>
+        
+        <div class="test-section">
+            <h2>Health Check</h2>
+            <button onclick="testHealthCheck()">Test Health Endpoint</button>
+            <div id="health-loading" class="loading">⏳ Testing...</div>
+            <div id="health-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Employee Submission Tests</h2>
+            <button onclick="testSubmission('trainer')">Test Trainer Submission</button>
+            <button onclick="testSubmission('intern')">Test Intern Submission</button>
+            <button onclick="testSubmission('fulltime')">Test Full-time Submission</button>
+            <div id="submit-loading" class="loading">⏳ Submitting...</div>
+            <div id="submit-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Invalid Data</h2>
+            <button onclick="testInvalid()">Test Invalid NRIC</button>
+            <button onclick="testMissing()">Test Missing Fields</button>
+            <div id="invalid-loading" class="loading">⏳ Testing...</div>
+            <div id="invalid-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test data
+        const testData = {
+            trainer: {
+                employeeType: 'trainer',
+                fullName: 'Test Trainer',
+                email: 'test.trainer@example.com',
+                nric: 'S1234567A',
+                nationality: 'sg_citizen',
+                citizenshipStatus: 'Singapore Citizen',
+                dob: '1990-01-15',
+                gender: 'male',
+                bank: 'DBS',
+                accountName: 'Test Trainer',
+                accountNumber: '1234567890'
+            },
+            intern: {
+                employeeType: 'intern_school',
+                fullName: 'Test Intern',
+                email: 'test.intern@example.com',
+                nric: 'T9876543B',
+                nationality: 'sg_pr',
+                citizenshipStatus: 'Singapore PR',
+                dob: '2000-06-20',
+                gender: 'female',
+                startDate: '2025-02-01',
+                endDate: '2025-05-31',
+                bank: 'OCBC',
+                accountName: 'Test Intern',
+                accountNumber: '9876543210'
+            },
+            fulltime: {
+                employeeType: 'fulltime',
+                fullName: 'Test Fulltime',
+                email: 'test.fulltime@example.com',
+                nric: 'G1122334C',
+                nationality: 'other',
+                citizenshipStatus: 'Others',
+                dob: '1985-03-10',
+                gender: 'male',
+                startDate: '2025-02-15',
+                bank: 'UOB',
+                accountName: 'Test Fulltime',
+                accountNumber: '5555666677'
+            }
+        };
+
+        async function testHealthCheck() {
+            const resultDiv = document.getElementById('health-result');
+            const loadingDiv = document.getElementById('health-loading');
+            
+            resultDiv.innerHTML = '';
+            loadingDiv.classList.add('active');
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                resultDiv.className = 'result ' + (response.ok ? 'success' : 'error');
+                resultDiv.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Error: ${error.message}`;
+            } finally {
+                loadingDiv.classList.remove('active');
+            }
+        }
+
+        async function testSubmission(type) {
+            const resultDiv = document.getElementById('submit-result');
+            const loadingDiv = document.getElementById('submit-loading');
+            
+            resultDiv.innerHTML = '';
+            loadingDiv.classList.add('active');
+            
+            try {
+                const response = await fetch('/api/submit-onboarding', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData[type])
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result ' + (response.ok ? 'success' : 'error');
+                resultDiv.textContent = `Testing: ${type}\nStatus: ${response.status}\n\nRequest:\n${JSON.stringify(testData[type], null, 2)}\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Error: ${error.message}`;
+            } finally {
+                loadingDiv.classList.remove('active');
+            }
+        }
+
+        async function testInvalid() {
+            const resultDiv = document.getElementById('invalid-result');
+            const loadingDiv = document.getElementById('invalid-loading');
+            
+            resultDiv.innerHTML = '';
+            loadingDiv.classList.add('active');
+            
+            const invalidData = {
+                ...testData.trainer,
+                nric: '1234' // Invalid NRIC
+            };
+            
+            try {
+                const response = await fetch('/api/submit-onboarding', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(invalidData)
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result ' + (response.ok ? 'error' : 'info');
+                resultDiv.textContent = `Testing: Invalid NRIC\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Error: ${error.message}`;
+            } finally {
+                loadingDiv.classList.remove('active');
+            }
+        }
+
+        async function testMissing() {
+            const resultDiv = document.getElementById('invalid-result');
+            const loadingDiv = document.getElementById('invalid-loading');
+            
+            resultDiv.innerHTML = '';
+            loadingDiv.classList.add('active');
+            
+            const missingData = {
+                employeeType: 'trainer',
+                fullName: 'Test User'
+                // Missing required fields
+            };
+            
+            try {
+                const response = await fetch('/api/submit-onboarding', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(missingData)
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result ' + (response.ok ? 'error' : 'info');
+                resultDiv.textContent = `Testing: Missing Fields\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Error: ${error.message}`;
+            } finally {
+                loadingDiv.classList.remove('active');
+            }
+        }
+
+        // Test health on load
+        window.addEventListener('load', testHealthCheck);
+    </script>
+</body>
+</html>
