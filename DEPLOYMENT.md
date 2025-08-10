@@ -37,12 +37,12 @@ This application is configured to run on the Tinkertanker Docker hosting infrast
    ```
 
 6. **Verify deployment:**
-   - Check health: `curl https://onboarding.dev.tk.sg/api/health`
-   - Visit: https://onboarding.dev.tk.sg
+   - Check health: `curl https://hr-onboarding.tk.sg/api/health`
+   - Visit: https://hr-onboarding.tk.sg
 
 ## Configuration Details
 
-- **URL**: https://onboarding.dev.tk.sg
+- **URL**: https://hr-onboarding.tk.sg
 - **Network**: Uses the shared `devtksg` network for nginx-proxy integration
 - **SSL**: Automatic Let's Encrypt certificates via nginx-proxy companion
 - **Port**: Internal port 3000 (exposed via nginx-proxy)
