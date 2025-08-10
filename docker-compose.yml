@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  talenox-onboarding:
+    build: .
+    expose:
+      - 3000 # port that your app needs exposed
+    env_file:
+      - .env
+    environment:
+      VIRTUAL_PORT: 3000 # tells nginx proxy what port your app is listening on
+      VIRTUAL_HOST: hr-onboarding.tk.sg # how to find your app from outside
+      LETSENCRYPT_HOST: hr-onboarding.tk.sg # same, but for https
+      LETSENCRYPT_EMAIL: sysops@m.tinkertanker.com # contact for cert
+      NODE_ENV: production
+      PORT: 3000
+    networks:
+      devtksg: # same network that our reverse proxy is on
+    restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); })"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  devtksg:
+    external: true
