@@ -8,7 +8,28 @@ const PORT = process.env.PORT || 3000;
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true,
+  origin: function(origin, callback) {
+    // In production, require explicit ALLOWED_ORIGINS
+    if (process.env.NODE_ENV === 'production') {
+      if (!process.env.ALLOWED_ORIGINS) {
+        return callback(new Error('ALLOWED_ORIGINS not configured'));
+      }
+      const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // Development: allow localhost
+      const devOrigins = ['http://localhost:3000', 'http://localhost:8888'];
+      if (!origin || devOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all in development
+      }
+    }
+  },
   credentials: true
 };
 
@@ -33,8 +54,19 @@ app.post('/api/submit-onboarding', async (req, res) => {
     // Call the function handler
     const result = await submitOnboarding.handler(event);
     
-    // Send response
-    res.status(result.statusCode).json(JSON.parse(result.body));
+    // Send response with safe JSON parsing
+    try {
+      const responseBody = typeof result.body === 'string' 
+        ? JSON.parse(result.body) 
+        : result.body;
+      res.status(result.statusCode).json(responseBody);
+    } catch (parseError) {
+      console.error('Error parsing response body:', parseError);
+      res.status(500).json({
+        success: false,
+        message: 'Invalid response format'
+      });
+    }
   } catch (error) {
     console.error('Error in submit-onboarding:', error);
     res.status(500).json({
