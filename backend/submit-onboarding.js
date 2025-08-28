@@ -402,6 +402,7 @@ const transformForTalenox = async (formData) => {
   return {
     // Core working fields
     first_name: formData.fullName,
+    identification_full_name: formData.fullName,  // New field: full name as shown in identification
     email: formData.email,
     gender: formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1),
     nationality: formData.nationality || 'Singaporean',
