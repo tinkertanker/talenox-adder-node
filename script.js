@@ -1,3 +1,38 @@
+// Detect credit/debit card numbers
+function isLikelyCardNumber(number) {
+    const digits = number.replace(/\D/g, '');
+
+    // Card numbers are 15-16 digits
+    if (digits.length < 15 || digits.length > 16) return false;
+
+    // Check known card prefixes
+    const cardPrefixes = [
+        /^4/,           // Visa
+        /^5[1-5]/,      // Mastercard
+        /^3[47]/,       // Amex
+        /^6(?:011|5)/,  // Discover
+        /^36/,          // Diners
+        /^2[2-7]/,      // Mastercard (2-series)
+    ];
+
+    const hasCardPrefix = cardPrefixes.some(p => p.test(digits));
+    if (!hasCardPrefix) return false;
+
+    // Luhn algorithm check
+    let sum = 0;
+    let isEven = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+        let digit = parseInt(digits[i], 10);
+        if (isEven) {
+            digit *= 2;
+            if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        isEven = !isEven;
+    }
+    return sum % 10 === 0;
+}
+
 function validateForm() {
     let isValid = true;
     const requiredFields = ['employeeType', 'fullName', 'email', 'nationality', 'dob', 'gender', 'bank', 'accountName', 'accountNumber'];
@@ -48,6 +83,10 @@ function validateForm() {
     const accountNumber = document.getElementById('accountNumber').value;
     if (accountNumber && !/^\d+$/.test(accountNumber)) {
         showError(document.getElementById('accountNumber'), 'Account number must contain only digits');
+        isValid = false;
+    } else if (accountNumber && isLikelyCardNumber(accountNumber)) {
+        showError(document.getElementById('accountNumber'),
+            'This looks like a card number. Please enter your bank account number (usually 9-12 digits).');
         isValid = false;
     }
     
