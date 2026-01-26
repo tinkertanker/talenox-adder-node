@@ -49,28 +49,24 @@ function validateForm() {
     });
     
     const emailField = document.getElementById('email');
-    if (emailField.value && !isValidEmail(emailField.value)) {
-        showError(emailField, 'Please enter a valid email address');
+    const emailError = validateEmailField(emailField);
+    if (emailError) {
+        showError(emailField, emailError);
         isValid = false;
     }
-    
+
     const nricField = document.getElementById('nric');
-    const nricValue = nricField.value.trim().toUpperCase();
-    if (!nricValue) {
+    if (!nricField.value.trim()) {
         showError(nricField, 'Please provide NRIC/FIN number');
         isValid = false;
-    } else if (nricValue.length !== 9) {
-        if (nricValue.length === 4 && /^\d{4}$/.test(nricValue)) {
-            showError(nricField, 'Please enter your complete 9-character NRIC/FIN, not just the last 4 digits');
-        } else {
-            showError(nricField, 'NRIC/FIN must be exactly 9 characters (e.g., S1234567A)');
+    } else {
+        const nricError = validateNricField(nricField);
+        if (nricError) {
+            showError(nricField, nricError);
+            isValid = false;
         }
-        isValid = false;
-    } else if (!/^[STFGM]\d{7}[A-Z]$/i.test(nricValue)) {
-        showError(nricField, 'Invalid format. NRIC/FIN should start with S, T, F, G, or M followed by 7 digits and 1 letter');
-        isValid = false;
     }
-    
+
     checkboxes.forEach(checkboxId => {
         const checkbox = document.getElementById(checkboxId);
         if (!checkbox.checked) {
@@ -79,14 +75,11 @@ function validateForm() {
             isValid = false;
         }
     });
-    
-    const accountNumber = document.getElementById('accountNumber').value;
-    if (accountNumber && !/^\d+$/.test(accountNumber)) {
-        showError(document.getElementById('accountNumber'), 'Account number must contain only digits');
-        isValid = false;
-    } else if (accountNumber && isLikelyCardNumber(accountNumber)) {
-        showError(document.getElementById('accountNumber'),
-            'This looks like a card number. Please enter your bank account number (usually 9-12 digits).');
+
+    const accountNumberField = document.getElementById('accountNumber');
+    const accountError = validateAccountNumberField(accountNumberField);
+    if (accountError) {
+        showError(accountNumberField, accountError);
         isValid = false;
     }
     
@@ -122,6 +115,12 @@ function showError(field, message) {
     field.parentElement.appendChild(errorDiv);
 }
 
+function clearFieldError(field) {
+    field.classList.remove('error');
+    const existingError = field.parentElement.querySelector('.error-message');
+    if (existingError) existingError.remove();
+}
+
 function clearErrors() {
     document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
     document.querySelectorAll('.error-message').forEach(el => el.remove());
@@ -131,6 +130,63 @@ function clearErrors() {
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
+
+// Individual field validators - return error message or null
+function validateEmailField(field) {
+    const value = field.value.trim();
+    if (!value) return null; // Don't show required error on blur, only on submit
+    if (!isValidEmail(value)) return 'Please enter a valid email address';
+    return null;
+}
+
+function validateNricField(field) {
+    const value = field.value.trim().toUpperCase();
+    if (!value) return null; // Don't show required error on blur
+    if (value.length === 4 && /^\d{4}$/.test(value)) {
+        return 'Please enter your complete 9-character NRIC/FIN, not just the last 4 digits';
+    }
+    if (value.length !== 9) {
+        return 'NRIC/FIN must be exactly 9 characters (e.g., S1234567A)';
+    }
+    if (!/^[STFGM]\d{7}[A-Z]$/i.test(value)) {
+        return 'Invalid format. NRIC/FIN should start with S, T, F, G, or M followed by 7 digits and 1 letter';
+    }
+    return null;
+}
+
+function validateAccountNumberField(field) {
+    const value = field.value.trim();
+    if (!value) return null; // Don't show required error on blur
+    if (!/^\d+$/.test(value)) {
+        return 'Account number must contain only digits';
+    }
+    if (isLikelyCardNumber(value)) {
+        return 'This looks like a card number. Please enter your bank account number (usually 9-12 digits).';
+    }
+    return null;
+}
+
+// Blur validation handler
+function validateOnBlur(field, validator) {
+    clearFieldError(field);
+    const error = validator(field);
+    if (error) {
+        showError(field, error);
+        return false;
+    }
+    return true;
+}
+
+// Set up blur listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const emailField = document.getElementById('email');
+    const nricField = document.getElementById('nric');
+    const accountNumberField = document.getElementById('accountNumber');
+
+    emailField.addEventListener('blur', () => validateOnBlur(emailField, validateEmailField));
+    nricField.addEventListener('blur', () => validateOnBlur(nricField, validateNricField));
+    accountNumberField.addEventListener('blur', () => validateOnBlur(accountNumberField, validateAccountNumberField));
+});
 
 // Handle employee type changes
 document.getElementById('employeeType').addEventListener('change', function() {
