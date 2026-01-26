@@ -85,7 +85,7 @@ function validateForm() {
     
     // Validate date fields based on employee type
     const employeeType = document.getElementById('employeeType').value;
-    if (employeeType === 'intern_school' || employeeType === 'intern_no_school') {
+    if (employeeType === 'intern_school') {
         const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         if (!startDate.value) {
@@ -218,7 +218,6 @@ document.getElementById('employeeType').addEventListener('change', function() {
             // Trainers don't fill dates, we auto-fill 1st of last month
             break;
         case 'intern_school':
-        case 'intern_no_school':
             // Interns need both start and end dates
             startDateGroup.style.display = 'block';
             endDateGroup.style.display = 'block';
@@ -366,7 +365,7 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     // Set immigration status
     if (employeeType === 'trainer' || employeeType === 'intern_school') {
         data.immigrationStatus = 'Contract (No CPF, No SDL)';
-    } else if (employeeType === 'intern_no_school' || employeeType === 'fulltime') {
+    } else if (employeeType === 'fulltime') {
         if (data.nationality === 'sg_citizen') {
             data.immigrationStatus = 'Singapore Citizen';
         } else if (data.nationality === 'sg_pr') {
@@ -379,7 +378,7 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     // Set job title
     if (employeeType === 'trainer') {
         data.jobTitle = 'Freelance Trainer';
-    } else if (employeeType === 'intern_school' || employeeType === 'intern_no_school') {
+    } else if (employeeType === 'intern_school') {
         data.jobTitle = 'Tinkercademy Intern';
     }
     
@@ -402,7 +401,7 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     }
     
     // Determine SHG requirement
-    if (employeeType === 'intern_no_school' || employeeType === 'fulltime') {
+    if (employeeType === 'fulltime') {
         data.requiresSHG = true;
     } else {
         data.requiresSHG = false;

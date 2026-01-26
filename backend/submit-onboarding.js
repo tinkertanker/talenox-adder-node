@@ -56,7 +56,7 @@ const validateFormData = (data) => {
   }
   
   // Validate dates based on employee type
-  if (data.employeeType === 'intern_school' || data.employeeType === 'intern_no_school') {
+  if (data.employeeType === 'intern_school') {
     if (!data.startDate) errors.push('Start date is required for interns');
     if (!data.endDate) errors.push('End date is required for interns');
     
@@ -96,7 +96,7 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate,
       jobStartDate = hiredDate; // Same as hired date
       jobEndDate = resignDate; // Same as resign date
       amount = 0;
-    } else if (formData.employeeType === 'intern_school' || formData.employeeType === 'intern_no_school') {
+    } else if (formData.employeeType === 'intern_school') {
       jobTitle = 'Tinkertanker Intern';
       department = 'Internship';
       jobStartDate = nextMonth.toISOString().split('T')[0]; // Beginning of next month
@@ -257,9 +257,8 @@ const sendHRNotification = async (formData, talenoxEmployeeId, jobId, internalEm
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const employeeTypeText = {
-      'trainer': 'Freelance Trainer',
+      'trainer': 'Freelance/Contractor',
       'intern_school': 'Intern with School Letter',
-      'intern_no_school': 'Intern without School Letter',
       'fulltime': 'Full-time Employee'
     };
 
@@ -313,9 +312,8 @@ const sendFailureNotification = async (formData, errorType, errorDetails) => {
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const employeeTypeText = {
-      'trainer': 'Freelance Trainer',
+      'trainer': 'Freelance/Contractor',
       'intern_school': 'Intern with School Letter',
-      'intern_no_school': 'Intern without School Letter',
       'fulltime': 'Full-time Employee'
     };
 
@@ -366,8 +364,6 @@ const transformForTalenox = async (formData) => {
       return 'Contract (No CPF, No SDL)';
     } else if (employeeType === 'intern_school') {
       return 'Contract (No CPF, No SDL)';
-    } else if (employeeType === 'intern_no_school') {
-      return 'Intern';
     } else if (employeeType === 'fulltime') {
       if (citizenshipStatus === 'sg_citizen') {
         return 'Singapore Citizen';
