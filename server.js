@@ -6,6 +6,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Honour X-Forwarded-For when behind nginx-proxy
+app.set('trust proxy', 1);
+
 // CORS configuration
 const corsOptions = {
   origin: function(origin, callback) {
@@ -38,46 +41,92 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Import the onboarding handler
+// Import handlers
 const submitOnboarding = require('./backend/submit-onboarding');
+const updateParticulars = require('./backend/update-particulars');
 
-// Convert Netlify function to Express endpoint
-app.post('/api/submit-onboarding', async (req, res) => {
+// Shared Netlify-style handler adapter for Express
+async function handleNetlifyStyle(handler, req, res, label) {
   try {
-    // Simulate Netlify event object
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIp = req.ip ||
+      (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : null) ||
+      req.socket.remoteAddress ||
+      'unknown';
+
     const event = {
       body: JSON.stringify(req.body),
       headers: req.headers,
-      httpMethod: req.method
+      httpMethod: req.method,
+      clientIp
     };
 
-    // Call the function handler
-    const result = await submitOnboarding.handler(event);
-    
-    // Send response with safe JSON parsing
+    const result = await handler(event);
+
+    // Express middleware owns CORS; do not let function-style handlers override it.
+    if (result.headers && typeof result.headers === 'object') {
+      for (const [key, value] of Object.entries(result.headers)) {
+        if (
+          !key.toLowerCase().startsWith('access-control-') &&
+          value !== undefined &&
+          value !== null &&
+          value !== ''
+        ) {
+          res.setHeader(key, value);
+        }
+      }
+    }
+
     try {
-      const responseBody = typeof result.body === 'string' 
-        ? JSON.parse(result.body) 
+      const responseBody = typeof result.body === 'string'
+        ? JSON.parse(result.body)
         : result.body;
       res.status(result.statusCode).json(responseBody);
     } catch (parseError) {
-      console.error('Error parsing response body:', parseError);
+      console.error(`Error parsing ${label} response body:`, parseError);
       res.status(500).json({
         success: false,
         message: 'Invalid response format'
       });
     }
   } catch (error) {
-    console.error('Error in submit-onboarding:', error);
+    console.error(`Error in ${label}:`, error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
   }
+}
+
+app.post('/api/submit-onboarding', (req, res) => {
+  handleNetlifyStyle(submitOnboarding.handler, req, res, 'submit-onboarding');
 });
 
-// Handle OPTIONS for CORS preflight
+app.post('/api/update-particulars/request-code', (req, res) => {
+  return handleNetlifyStyle(updateParticulars.requestCodeHandler, req, res, 'update-particulars-request-code');
+});
+
+app.post('/api/update-particulars/verify-code', (req, res) => {
+  return handleNetlifyStyle(updateParticulars.verifyCodeHandler, req, res, 'update-particulars-verify-code');
+});
+
+app.post('/api/update-particulars', (req, res) => {
+  return handleNetlifyStyle(updateParticulars.handler, req, res, 'update-particulars');
+});
+
 app.options('/api/submit-onboarding', (req, res) => {
+  res.status(200).end();
+});
+
+app.options('/api/update-particulars/request-code', (req, res) => {
+  res.status(200).end();
+});
+
+app.options('/api/update-particulars/verify-code', (req, res) => {
+  res.status(200).end();
+});
+
+app.options('/api/update-particulars', (req, res) => {
   res.status(200).end();
 });
 

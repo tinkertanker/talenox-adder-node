@@ -9,6 +9,7 @@ body {
     background-color: #000;
     color: #000;
     line-height: 1.6;
+    padding-bottom: 64px;
 }
 
 .container {
@@ -144,7 +145,7 @@ h2:first-of-type {
     cursor: pointer;
 }
 
-.btn-next, .btn-prev, .btn-submit {
+.btn-next, .btn-prev, .btn-submit, .btn-secondary {
     padding: 12px 24px;
     font-size: 16px;
     font-weight: 500;
@@ -163,6 +164,40 @@ h2:first-of-type {
     background-color: #E9967A;
 }
 
+.btn-secondary {
+    background-color: #1a1a1a;
+    color: #FA8072;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover {
+    background-color: #333;
+}
+
+.btn-link {
+    appearance: none;
+    display: block;
+    margin: 14px auto 0;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: #555;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.btn-link:hover {
+    color: #000;
+}
+
+.btn-secondary:disabled,
+.btn-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
 .btn-prev {
     background-color: #000;
     color: #fff;
@@ -178,6 +213,32 @@ h2:first-of-type {
     width: 100%;
 }
 
+input[readonly] {
+    background-color: #f5f5f5;
+    color: #444;
+}
+
+.bottom-mode-link {
+    position: fixed;
+    left: 50%;
+    bottom: 14px;
+    z-index: 10;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border: 1px solid #555;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.92);
+    color: #bbb;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.bottom-mode-link:hover,
+.bottom-mode-link:focus-visible {
+    color: #FA8072;
+    border-color: #FA8072;
+}
 
 .error {
     border-color: #d93025 !important;
@@ -228,7 +289,7 @@ h2:first-of-type {
     .header h1 {
         font-size: 20px;
     }
-    
+
     .form-group input[type="text"],
     .form-group input[type="email"],
     .form-group input[type="date"],

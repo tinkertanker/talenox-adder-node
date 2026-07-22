@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tinkercademy Freelancer Onboarding</title>
+    <title>Tinkercademy Personal Particulars</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,21 +13,60 @@
     <div class="container">
         <div class="header">
             <img src="logo.png" alt="Tinkercademy Logo" class="logo">
-            <h1>Onboarding: Personal Particulars</h1>
-            <p>Welcome to Tinkercademy. We'll collect your information to get you paid.</p>
+            <h1 id="pageTitle">Onboarding: Personal Particulars</h1>
+            <p id="pageSubtitle">Welcome to Tinkercademy. We'll collect your information to get you paid.</p>
         </div>
 
         <form id="onboardingForm">
-            <h2>Employee Type</h2>
-            
-            <div class="form-group">
-                <label for="employeeType">Select Employee Type *</label>
-                <select id="employeeType" name="employeeType" required>
-                    <option value="">Select type</option>
-                    <option value="trainer">Freelance/Contractor</option>
-                    <option value="intern_school">Intern with School Letter</option>
-                    <option value="fulltime">Full-time Employee</option>
-                </select>
+            <div id="onboardingTypeSection">
+                <h2>Employee Type</h2>
+
+                <div class="form-group">
+                    <label for="employeeType">Select Employee Type *</label>
+                    <select id="employeeType" name="employeeType" required>
+                        <option value="">Select type</option>
+                        <option value="trainer">Freelance/Contractor</option>
+                        <option value="intern_school">Intern with School Letter</option>
+                        <option value="fulltime">Full-time Employee</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="updateIntro" class="info-box" style="display:none;">
+                <h3>Updating your details</h3>
+                <ul>
+                    <li>Enter your NRIC/FIN to receive a verification code at the email we already have on file</li>
+                    <li>Knowing someone's NRIC alone is not enough — you must open that email inbox</li>
+                    <li>If you change your payroll email, we will notify the previous address on file</li>
+                    <li>If you need help, contact HR at hr.onboarding@tinkertanker.com</li>
+                </ul>
+            </div>
+
+            <div id="updateVerifySection" style="display:none;">
+                <h2>Verify Your Identity</h2>
+
+                <div class="form-group">
+                    <label for="updateNric">NRIC/FIN Number (Full 9 characters) *</label>
+                    <input type="text" id="updateNric" name="updateNric" placeholder="S1234567A or T1234567B" maxlength="9">
+                    <small>Must match the NRIC/FIN already on file with us.</small>
+                </div>
+
+                <button type="button" class="btn-secondary" id="sendCodeButton">Send Verification Code</button>
+
+                <div id="codeSentNotice" class="info-box" style="display:none; margin-top: 20px;">
+                    <h3>Check your email</h3>
+                    <p id="codeSentMessage">If this NRIC/FIN is on our records, a 6-digit code has been sent to the email we have on file.</p>
+                </div>
+
+                <div id="verificationCodeGroup" style="display:none; margin-top: 20px;">
+                    <div class="form-group">
+                    <label for="verificationCode">Verification Code *</label>
+                    <input type="text" id="verificationCode" name="verificationCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
+                    <small>Enter the code from your email. It expires in 10 minutes.</small>
+                    </div>
+                    <button type="button" class="btn-secondary" id="verifyCodeButton">Verify Code</button>
+                    <button type="button" class="btn-link" id="changeNricButton">Use a different NRIC/FIN</button>
+                </div>
             </div>
 
             <div id="formDetails" style="display:none;">
@@ -44,7 +83,7 @@
                 <input type="email" id="email" name="email" required>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="onboardingNricGroup">
                 <label for="nric">NRIC/FIN Number (Full 9 characters) *</label>
                 <input type="text" id="nric" name="nric" placeholder="S1234567A or T1234567B" maxlength="9" required>
                 <small style="color: #666; font-size: 0.9em;">
@@ -296,6 +335,7 @@
                     <option value="sg_pr">Singapore Permanent Resident</option>
                     <option value="other">Others</option>
                 </select>
+                <small id="citizenshipHelp" style="display:none;"></small>
             </div>
 
             <div class="form-group">
@@ -349,22 +389,22 @@
             <div class="form-group">
                 <label for="accountNumber">Account Number *</label>
                 <input type="text" id="accountNumber" name="accountNumber" required>
-                <small>Enter your bank account number (not your card number). Usually 9-12 digits, omit dashes.</small>
+                <small id="accountNumberHelp">Enter your bank account number (not your card number). Usually 9-12 digits, omit dashes.</small>
             </div>
-            
-                <button type="submit" class="btn-submit">Submit</button>
+
+                <button type="submit" class="btn-submit" id="submitButton">Submit</button>
             </div>
         </form>
-        
+
         <div id="successMessage" class="success-container" style="display:none;">
             <div class="header">
                 <img src="logo.png" alt="Tinkercademy Logo" class="logo">
-                <h1>Thank You!</h1>
-                <p>Your information has been received and is being processed.</p>
-                <p>Please watch your email (and spam folder) — on success you'll hear from Talenox; if we cannot create your payroll account, you and HR will get the same follow-up email.</p>
+                <h1 id="successTitle">Thank You!</h1>
+                <p id="successSubtitle">Your information has been received and is being processed.</p>
+                <p id="onboardingSuccessEmailNotice">Please watch your email (and spam folder) — on success you'll hear from Talenox; if we cannot create your payroll account, you and HR will get the same follow-up email.</p>
             </div>
-            
-            <div class="info-box">
+
+            <div class="info-box" id="onboardingSuccessDetails">
                 <h3>What happens next?</h3>
                 <ul>
                     <li>Your information is being processed in the background - this may take a few minutes</li>
@@ -375,8 +415,20 @@
                 </ul>
                 <p style="margin-top: 20px; color: #666;">Processing typically completes within 2-3 minutes. If you don't receive an email within 10 minutes, please contact HR at hr.onboarding@tinkertanker.com</p>
             </div>
+
+            <div class="info-box" id="updateSuccessDetails" style="display:none;">
+                <h3>What happens next?</h3>
+                <ul>
+                    <li>Your particulars have been updated in Talenox</li>
+                    <li>HR can review the update in Talenox</li>
+                    <li>If you changed your payroll email, we attempted to notify the previous address</li>
+                </ul>
+                <p style="margin-top: 20px; color: #666;">If your details don't look right, please contact HR at hr.onboarding@tinkertanker.com</p>
+            </div>
         </div>
     </div>
+
+    <a class="bottom-mode-link" id="alternateModeLink" href="?mode=update">Update particulars</a>
 
     <script src="script.js"></script>
 </body>
