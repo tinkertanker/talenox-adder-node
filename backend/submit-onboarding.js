@@ -334,6 +334,7 @@ const sendFailureNotification = async (formData, { employeeErrorType, hrErrorTyp
       recipients.push(formData.email);
     }
 
+    // Shared body is PDPA-safe: no raw API payloads, NRIC, or bank details
     const emailContent = `
 Onboarding submission could not be completed
 
@@ -344,12 +345,10 @@ What to do next:
 ${explanation.nextSteps}
 
 ---
-Details (for HR)
+Submission details
 - Name: ${formData.fullName || 'Not provided'}
 - Employee Type: ${employeeTypeText[formData.employeeType] || formData.employeeType || 'Unknown'}
 - Email: ${formData.email || 'Not provided'}
-- Nationality: ${formData.nationality || 'Not provided'}
-- Citizenship Status: ${formData.citizenshipStatus || 'Not provided'}
 - Error Type: ${hrErrorType}
 - Error Message: ${hrErrorDetails}
 - Timestamp: ${new Date().toISOString()}
@@ -357,15 +356,26 @@ Details (for HR)
 This is an automated message from the Tinkercademy onboarding system.
     `.trim();
 
-    await resend.emails.send({
+    const payload = {
       from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
-      to: recipients,
       replyTo: hrEmail,
       subject: `Onboarding could not be completed: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
       text: emailContent
-    });
+    };
 
-    console.log('Failure notification sent to:', recipients.join(', '));
+    try {
+      await resend.emails.send({ ...payload, to: recipients });
+      console.log('Failure notification sent to:', recipients.join(', '));
+    } catch (sharedSendError) {
+      // Do not let a bad submitter address block the HR alert
+      console.error('Shared failure email failed, retrying HR-only:', sharedSendError);
+      if (recipients.length > 1) {
+        await resend.emails.send({ ...payload, to: [hrEmail] });
+        console.log('Failure notification sent to HR only:', hrEmail);
+      } else {
+        throw sharedSendError;
+      }
+    }
   } catch (error) {
     console.error('Failed to send failure notification:', error);
   }
@@ -520,7 +530,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         success: true,
-        message: 'Your submission has been accepted and is being processed. If account setup fails, we will email you and HR with next steps.',
+        message: 'Your submission has been accepted and is being processed. If we cannot create your payroll account, we will email you and HR with next steps.',
         requestId: requestId
       })
     };
@@ -661,11 +671,16 @@ async function processOnboarding(formData, requestId) {
     console.error(`[${requestId}] Error stack:`, error.stack);
     
     // One email to HR and the submitter together (submitter already saw the success screen)
+    const employeeErrorType = error.errorType === 'duplicate' ? 'duplicate' : 'system';
     await sendFailureNotification(formData, {
-      employeeErrorType: error.errorType === 'duplicate' ? 'duplicate' : 'system',
+      employeeErrorType,
       hrErrorType: error.hrErrorType || 'System Error',
-      hrErrorDetails: error.hrErrorDetails || `Unexpected error: ${error.message}`
+      // Keep shared email free of raw exception text that may echo request fields
+      hrErrorDetails: error.hrErrorDetails || 'An unexpected error occurred during onboarding'
     });
+    if (!error.hrErrorDetails) {
+      console.error(`[${requestId}] Unexpected error details (server log only):`, error.message);
+    }
     
     throw error;
   }
