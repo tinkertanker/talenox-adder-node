@@ -49,7 +49,7 @@ Required environment variables in `.env`:
 ## Features
 
 - **Employee Types**: Support for trainers, interns, and full-time employees
-- **Update Particulars**: Existing employees can update personal and bank details
+- **Update Particulars**: Existing employees can update personal and bank details after email verification
 - **Data Validation**: NRIC/FIN format validation and required field checks
 - **Banking Integration**: Support for major Singapore banks
 - **Background Processing**: Handles long-running API operations reliably

@@ -1,17 +1,68 @@
 // Handler for updating existing employee particulars in Talenox
+// Requires a one-time code sent to the email already on file.
 
+const crypto = require('crypto');
 const { Resend } = require('resend');
+
+const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_REQUEST_COOLDOWN_MS = 60 * 1000; // 1 minute between sends per NRIC
+const OTP_LENGTH = 6;
+
+// In-memory OTP store: normalised NRIC -> session
+const otpStore = new Map();
 
 const redactSensitiveData = (data) => {
   const redacted = { ...data };
   if (redacted.nric) redacted.nric = redacted.nric.substring(0, 1) + '****' + redacted.nric.slice(-1);
   if (redacted.accountNumber) redacted.accountNumber = '****' + redacted.accountNumber.slice(-4);
+  if (redacted.verificationCode) redacted.verificationCode = '******';
   return redacted;
 };
 
-const validateNRIC = (nric) => {
-  const nricRegex = /^[STFGM]\d{7}[A-Z]$/i;
-  return nricRegex.test(nric);
+const validateNRIC = (nric) => /^[STFGM]\d{7}[A-Z]$/i.test(nric);
+
+const jsonResponse = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  },
+  body: JSON.stringify(body)
+});
+
+const optionsResponse = () => ({
+  statusCode: 200,
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  },
+  body: ''
+});
+
+const hashOtp = (code) => crypto.createHash('sha256').update(String(code)).digest('hex');
+
+const generateOtp = () => {
+  // Cryptographically secure 6-digit code (000000–999999)
+  const num = crypto.randomInt(0, 1000000);
+  return String(num).padStart(OTP_LENGTH, '0');
+};
+
+const maskEmail = (email) => {
+  if (!email || !email.includes('@')) return '***';
+  const [local, domain] = email.split('@');
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}***@${domain}`;
+};
+
+const cleanupExpiredOtps = () => {
+  const now = Date.now();
+  for (const [key, session] of otpStore.entries()) {
+    if (session.expiresAt <= now) {
+      otpStore.delete(key);
+    }
+  }
 };
 
 const validateUpdateFormData = (data) => {
@@ -20,6 +71,7 @@ const validateUpdateFormData = (data) => {
   if (!data.fullName) errors.push('Full name is required');
   if (!data.email) errors.push('Email is required');
   if (!data.nric) errors.push('NRIC/FIN is required');
+  if (!data.verificationCode) errors.push('Verification code is required');
   if (!data.nationality) errors.push('Nationality is required');
   if (!data.citizenshipStatus) errors.push('Citizenship status is required');
   if (!data.dob) errors.push('Date of birth is required');
@@ -39,6 +91,10 @@ const validateUpdateFormData = (data) => {
     } else if (!validateNRIC(nricValue)) {
       errors.push('Invalid NRIC/FIN format. It should start with S, T, F, G, or M followed by 7 digits and 1 letter');
     }
+  }
+
+  if (data.verificationCode && !/^\d{6}$/.test(String(data.verificationCode).trim())) {
+    errors.push('Verification code must be 6 digits');
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,6 +154,20 @@ const findEmployeeByNric = async (nric, requestId = 'unknown') => {
 
     if (match) {
       console.log(`[${requestId}] Found employee by NRIC on page ${page}: Talenox ID ${match.id}`);
+      // Fetch full record so we have a reliable email for verification
+      const detailResponse = await fetch(`${process.env.TALENOX_API_URL}/employees/${match.id}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${process.env.TALENOX_API_KEY}`,
+          Accept: 'application/json'
+        }
+      });
+
+      if (detailResponse.ok) {
+        return await detailResponse.json();
+      }
+
+      console.warn(`[${requestId}] Could not fetch full employee record, using list result`);
       return match;
     }
 
@@ -131,7 +201,6 @@ const buildUpdatePayload = (formData, existingEmployee) => {
     payload.citizenship = citizenship;
   }
 
-  // Include existing bank account id when available so Talenox updates rather than duplicates
   const existingBank =
     existingEmployee.bank_account ||
     existingEmployee.bank_account_attributes ||
@@ -141,6 +210,28 @@ const buildUpdatePayload = (formData, existingEmployee) => {
   }
 
   return payload;
+};
+
+const sendVerificationEmail = async (toEmail, code, employeeName) => {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Email service is not configured');
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const greeting = employeeName ? `Hi ${employeeName},` : 'Hi,';
+
+  await resend.emails.send({
+    from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
+    to: [toEmail],
+    subject: 'Your Tinkercademy particulars verification code',
+    text: `${greeting}
+
+Your verification code for updating personal particulars is: ${code}
+
+This code expires in 10 minutes. If you did not request this, you can ignore this email and contact HR at hr.onboarding@tinkertanker.com.
+
+— Tinkercademy Onboarding`
+  });
 };
 
 const sendUpdateHRNotification = async (formData, talenoxEmployeeId, internalEmployeeId) => {
@@ -165,7 +256,7 @@ Employee Details:
 Talenox Record:
 - Internal Employee ID: ${internalEmployeeId || 'Unknown'}
 - Talenox Database ID: ${talenoxEmployeeId}
-- Status: Particulars updated successfully
+- Status: Particulars updated successfully (email-verified)
 
 Next Steps:
 - Review the updated details in Talenox
@@ -228,28 +319,165 @@ This is an automated failure alert from the Tinkercademy onboarding system.
   }
 };
 
-exports.handler = async (event) => {
+const consumeOtpSession = (nric, verificationCode) => {
+  cleanupExpiredOtps();
+  const key = nric.trim().toUpperCase();
+  const session = otpStore.get(key);
+
+  if (!session) {
+    return { ok: false, error: 'No verification code found. Please request a new code.' };
+  }
+
+  if (session.expiresAt <= Date.now()) {
+    otpStore.delete(key);
+    return { ok: false, error: 'Verification code has expired. Please request a new code.' };
+  }
+
+  if (session.attempts >= OTP_MAX_ATTEMPTS) {
+    otpStore.delete(key);
+    return { ok: false, error: 'Too many incorrect attempts. Please request a new code.' };
+  }
+
+  const providedHash = hashOtp(String(verificationCode).trim());
+  if (providedHash !== session.codeHash) {
+    session.attempts += 1;
+    otpStore.set(key, session);
+    const remaining = OTP_MAX_ATTEMPTS - session.attempts;
+    if (remaining <= 0) {
+      otpStore.delete(key);
+      return { ok: false, error: 'Too many incorrect attempts. Please request a new code.' };
+    }
+    return { ok: false, error: `Incorrect verification code. ${remaining} attempt(s) remaining.` };
+  }
+
+  // One-time use: remove after successful verification
+  otpStore.delete(key);
+  return {
+    ok: true,
+    employeeSnapshot: session.employeeSnapshot
+  };
+};
+
+// POST /api/update-particulars/request-code
+exports.requestCodeHandler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
+    return optionsResponse();
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ error: 'Method not allowed' })
+    return jsonResponse(405, { error: 'Method not allowed' });
+  }
+
+  const requestId = `otp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  try {
+    const body = JSON.parse(event.body || '{}');
+    const nric = (body.nric || '').trim().toUpperCase();
+
+    if (!nric || !validateNRIC(nric)) {
+      return jsonResponse(400, {
+        error: 'Invalid NRIC/FIN',
+        details: 'Please enter a valid 9-character NRIC/FIN (e.g., S1234567A).'
+      });
+    }
+
+    // Generic success message used whether or not we find a match (limits NRIC enumeration)
+    const genericSuccess = {
+      success: true,
+      message: 'If this NRIC/FIN is on our records, a verification code has been sent to the email address we have on file. Check your inbox (and spam folder).'
     };
+
+    if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
+      console.error(`[${requestId}] Talenox API credentials not configured`);
+      return jsonResponse(500, {
+        error: 'Configuration error',
+        details: 'Talenox API is not properly configured'
+      });
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error(`[${requestId}] Resend not configured`);
+      return jsonResponse(500, {
+        error: 'Configuration error',
+        details: 'Email verification is not properly configured'
+      });
+    }
+
+    cleanupExpiredOtps();
+    const existingSession = otpStore.get(nric);
+    if (existingSession && existingSession.lastSentAt && Date.now() - existingSession.lastSentAt < OTP_REQUEST_COOLDOWN_MS) {
+      return jsonResponse(429, {
+        error: 'Please wait',
+        details: 'A verification code was recently sent. Please wait a minute before requesting another.'
+      });
+    }
+
+    let employee;
+    try {
+      employee = await findEmployeeByNric(nric, requestId);
+    } catch (lookupError) {
+      console.error(`[${requestId}] Employee lookup failed:`, lookupError);
+      return jsonResponse(502, {
+        error: 'Lookup failed',
+        details: 'Unable to search for your employee record. Please try again shortly.'
+      });
+    }
+
+    if (!employee || !employee.email) {
+      console.log(`[${requestId}] No employee/email for NRIC — returning generic success`);
+      // Still return success to avoid leaking whether the NRIC exists
+      return jsonResponse(200, genericSuccess);
+    }
+
+    const code = generateOtp();
+    const employeeName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
+
+    try {
+      await sendVerificationEmail(employee.email, code, employeeName);
+    } catch (emailError) {
+      console.error(`[${requestId}] Failed to send verification email:`, emailError);
+      return jsonResponse(502, {
+        error: 'Email failed',
+        details: 'Could not send the verification email. Please try again or contact HR.'
+      });
+    }
+
+    otpStore.set(nric, {
+      codeHash: hashOtp(code),
+      expiresAt: Date.now() + OTP_TTL_MS,
+      lastSentAt: Date.now(),
+      attempts: 0,
+      employeeSnapshot: {
+        id: employee.id,
+        employee_id: employee.employee_id,
+        email: employee.email,
+        bank_account: employee.bank_account || employee.bank_account_attributes || null
+      }
+    });
+
+    console.log(`[${requestId}] Verification code sent for employee ${employee.id} to ${maskEmail(employee.email)}`);
+
+    return jsonResponse(200, {
+      ...genericSuccess,
+      maskedEmail: maskEmail(employee.email)
+    });
+  } catch (error) {
+    console.error(`[${requestId}] request-code error:`, error);
+    return jsonResponse(400, {
+      error: 'Invalid request',
+      details: 'Could not process verification request'
+    });
+  }
+};
+
+// POST /api/update-particulars
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return optionsResponse();
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return jsonResponse(405, { error: 'Method not allowed' });
   }
 
   try {
@@ -260,72 +488,35 @@ exports.handler = async (event) => {
     const validationErrors = validateUpdateFormData(formData);
     if (validationErrors.length > 0) {
       console.log(`[${requestId}] Validation failed:`, validationErrors);
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-          error: 'Validation failed',
-          details: validationErrors,
-          requestId
-        })
-      };
+      return jsonResponse(400, {
+        error: 'Validation failed',
+        details: validationErrors,
+        requestId
+      });
     }
 
     if (!process.env.TALENOX_API_KEY || !process.env.TALENOX_API_URL) {
       console.error(`[${requestId}] Talenox API credentials not configured`);
-      return {
-        statusCode: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-          error: 'Configuration error',
-          details: 'Talenox API is not properly configured'
-        })
-      };
+      return jsonResponse(500, {
+        error: 'Configuration error',
+        details: 'Talenox API is not properly configured'
+      });
     }
 
-    // Look up the employee before accepting so we can return a clear not-found error
-    let existingEmployee;
-    try {
-      existingEmployee = await findEmployeeByNric(formData.nric, requestId);
-    } catch (lookupError) {
-      console.error(`[${requestId}] Employee lookup failed:`, lookupError);
-      return {
-        statusCode: 502,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-          error: 'Lookup failed',
-          details: 'Unable to search for your employee record. Please try again shortly.',
-          requestId
-        })
-      };
+    const otpResult = consumeOtpSession(formData.nric, formData.verificationCode);
+    if (!otpResult.ok) {
+      console.log(`[${requestId}] OTP verification failed`);
+      return jsonResponse(401, {
+        error: 'Verification failed',
+        details: otpResult.error,
+        requestId
+      });
     }
 
-    if (!existingEmployee) {
-      console.log(`[${requestId}] No employee found for provided NRIC`);
-      return {
-        statusCode: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({
-          error: 'Employee not found',
-          details: 'No employee record matched that NRIC/FIN. Please check your details or contact HR at hr.onboarding@tinkertanker.com.',
-          requestId
-        })
-      };
-    }
+    // Use the employee snapshot from the verified OTP session — do not re-trust NRIC alone
+    const existingEmployee = otpResult.employeeSnapshot;
 
-    console.log(`[${requestId}] Accepted update for background processing:`, redactSensitiveData(formData));
+    console.log(`[${requestId}] Accepted verified update for background processing:`, redactSensitiveData(formData));
 
     processParticularsUpdate(formData, existingEmployee, requestId).catch((error) => {
       console.error(`[${requestId}] Background update processing failed:`, error);
@@ -333,31 +524,17 @@ exports.handler = async (event) => {
         .catch((err) => console.error(`[${requestId}] Failed to send error notification:`, err));
     });
 
-    return {
-      statusCode: 202,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({
-        success: true,
-        message: 'Your particulars update has been accepted and is being processed.',
-        requestId
-      })
-    };
+    return jsonResponse(202, {
+      success: true,
+      message: 'Your particulars update has been accepted and is being processed.',
+      requestId
+    });
   } catch (error) {
     console.error('Request parsing error:', error);
-    return {
-      statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({
-        error: 'Invalid request',
-        details: 'Could not parse request data'
-      })
-    };
+    return jsonResponse(400, {
+      error: 'Invalid request',
+      details: 'Could not parse request data'
+    });
   }
 };
 

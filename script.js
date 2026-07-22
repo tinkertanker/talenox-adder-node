@@ -34,6 +34,7 @@ function isLikelyCardNumber(number) {
 }
 
 let currentMode = 'onboarding'; // 'onboarding' | 'update'
+let updateCodeSent = false;
 
 function validateForm() {
     let isValid = true;
@@ -61,15 +62,44 @@ function validateForm() {
         isValid = false;
     }
 
-    const nricField = document.getElementById('nric');
-    if (!nricField.value.trim()) {
-        showError(nricField, 'Please provide NRIC/FIN number');
-        isValid = false;
-    } else {
-        const nricError = validateNricField(nricField);
-        if (nricError) {
-            showError(nricField, nricError);
+    if (currentMode === 'update') {
+        const updateNricField = document.getElementById('updateNric');
+        const codeField = document.getElementById('verificationCode');
+
+        if (!updateCodeSent) {
+            showError(updateNricField, 'Please request a verification code first');
             isValid = false;
+        }
+
+        if (!updateNricField.value.trim()) {
+            showError(updateNricField, 'Please provide NRIC/FIN number');
+            isValid = false;
+        } else {
+            const nricError = validateNricField(updateNricField);
+            if (nricError) {
+                showError(updateNricField, nricError);
+                isValid = false;
+            }
+        }
+
+        if (!codeField.value.trim()) {
+            showError(codeField, 'Please enter the verification code from your email');
+            isValid = false;
+        } else if (!/^\d{6}$/.test(codeField.value.trim())) {
+            showError(codeField, 'Verification code must be 6 digits');
+            isValid = false;
+        }
+    } else {
+        const nricField = document.getElementById('nric');
+        if (!nricField.value.trim()) {
+            showError(nricField, 'Please provide NRIC/FIN number');
+            isValid = false;
+        } else {
+            const nricError = validateNricField(nricField);
+            if (nricError) {
+                showError(nricField, nricError);
+                isValid = false;
+            }
         }
     }
 
@@ -214,6 +244,27 @@ function applyEmployeeTypeDateFields(employeeType) {
     }
 }
 
+function resetUpdateVerification() {
+    updateCodeSent = false;
+    const updateNric = document.getElementById('updateNric');
+    const verificationCode = document.getElementById('verificationCode');
+    const codeSentNotice = document.getElementById('codeSentNotice');
+    const verificationCodeGroup = document.getElementById('verificationCodeGroup');
+    const sendCodeButton = document.getElementById('sendCodeButton');
+
+    if (updateNric) {
+        updateNric.value = '';
+        updateNric.readOnly = false;
+    }
+    if (verificationCode) verificationCode.value = '';
+    if (codeSentNotice) codeSentNotice.style.display = 'none';
+    if (verificationCodeGroup) verificationCodeGroup.style.display = 'none';
+    if (sendCodeButton) {
+        sendCodeButton.disabled = false;
+        sendCodeButton.textContent = 'Send Verification Code';
+    }
+}
+
 function setMode(mode) {
     currentMode = mode;
 
@@ -221,9 +272,12 @@ function setMode(mode) {
     const updateBtn = document.getElementById('modeUpdate');
     const onboardingTypeSection = document.getElementById('onboardingTypeSection');
     const updateIntro = document.getElementById('updateIntro');
+    const updateVerifySection = document.getElementById('updateVerifySection');
     const formDetails = document.getElementById('formDetails');
+    const onboardingNricGroup = document.getElementById('onboardingNricGroup');
     const employeeType = document.getElementById('employeeType');
     const submitButton = document.getElementById('submitButton');
+    const nricField = document.getElementById('nric');
     const pageTitle = document.getElementById('pageTitle');
     const pageSubtitle = document.getElementById('pageSubtitle');
 
@@ -233,13 +287,17 @@ function setMode(mode) {
     updateBtn.setAttribute('aria-pressed', mode === 'update' ? 'true' : 'false');
 
     clearErrors();
+    resetUpdateVerification();
 
     if (mode === 'update') {
         pageTitle.textContent = 'Update Personal Particulars';
         pageSubtitle.textContent = 'Already onboarded? Update your personal or bank details here.';
         onboardingTypeSection.style.display = 'none';
         updateIntro.style.display = 'block';
-        formDetails.style.display = 'block';
+        updateVerifySection.style.display = 'block';
+        formDetails.style.display = 'none';
+        onboardingNricGroup.style.display = 'none';
+        nricField.removeAttribute('required');
         employeeType.removeAttribute('required');
         employeeType.value = '';
         submitButton.textContent = 'Update Particulars';
@@ -249,10 +307,78 @@ function setMode(mode) {
         pageSubtitle.textContent = "Welcome to Tinkercademy. We'll collect your information to get you paid.";
         onboardingTypeSection.style.display = 'block';
         updateIntro.style.display = 'none';
+        updateVerifySection.style.display = 'none';
+        onboardingNricGroup.style.display = 'block';
+        nricField.setAttribute('required', 'true');
         employeeType.setAttribute('required', 'true');
         submitButton.textContent = 'Submit';
         formDetails.style.display = employeeType.value ? 'block' : 'none';
         applyEmployeeTypeDateFields(employeeType.value);
+    }
+}
+
+async function requestVerificationCode() {
+    const updateNricField = document.getElementById('updateNric');
+    const sendCodeButton = document.getElementById('sendCodeButton');
+    const codeSentNotice = document.getElementById('codeSentNotice');
+    const codeSentMessage = document.getElementById('codeSentMessage');
+    const verificationCodeGroup = document.getElementById('verificationCodeGroup');
+    const formDetails = document.getElementById('formDetails');
+
+    clearFieldError(updateNricField);
+
+    if (!updateNricField.value.trim()) {
+        showError(updateNricField, 'Please provide NRIC/FIN number');
+        return;
+    }
+
+    const nricError = validateNricField(updateNricField);
+    if (nricError) {
+        showError(updateNricField, nricError);
+        return;
+    }
+
+    const originalText = sendCodeButton.textContent;
+    sendCodeButton.disabled = true;
+    sendCodeButton.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('/api/update-particulars/request-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nric: updateNricField.value.trim().toUpperCase() })
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+            const details = Array.isArray(result.details) ? result.details.join('\n') : (result.details || 'Please try again.');
+            throw new Error(`${result.error || 'Could not send code'}\n\n${details}`);
+        }
+
+        updateCodeSent = true;
+        updateNricField.readOnly = true;
+        updateNricField.value = updateNricField.value.trim().toUpperCase();
+
+        let message = result.message || 'If this NRIC/FIN is on our records, a verification code has been sent to the email we have on file.';
+        if (result.maskedEmail) {
+            message = `A verification code has been sent to ${result.maskedEmail}. Enter it below, then update your particulars.`;
+        }
+        codeSentMessage.textContent = message;
+        codeSentNotice.style.display = 'block';
+        verificationCodeGroup.style.display = 'block';
+        formDetails.style.display = 'block';
+
+        sendCodeButton.textContent = 'Resend Code';
+        sendCodeButton.disabled = false;
+
+        setTimeout(() => {
+            document.getElementById('verificationCode').focus();
+        }, 100);
+    } catch (error) {
+        console.error('Request code error:', error);
+        alert(error.message || 'Could not send verification code. Please try again.');
+        sendCodeButton.textContent = originalText;
+        sendCodeButton.disabled = false;
     }
 }
 
@@ -333,7 +459,7 @@ async function submitForm(data, endpoint) {
 
     isSubmitting = true;
 
-    const submitButton = document.querySelector('.btn-submit');
+    const submitButton = document.getElementById('submitButton');
     const originalText = submitButton.textContent;
     submitButton.textContent = currentMode === 'update' ? 'Updating...' : 'Submitting...';
     submitButton.disabled = true;
@@ -415,14 +541,17 @@ async function submitForm(data, endpoint) {
 document.addEventListener('DOMContentLoaded', function() {
     const emailField = document.getElementById('email');
     const nricField = document.getElementById('nric');
+    const updateNricField = document.getElementById('updateNric');
     const accountNumberField = document.getElementById('accountNumber');
 
     emailField.addEventListener('blur', () => validateOnBlur(emailField, validateEmailField));
     nricField.addEventListener('blur', () => validateOnBlur(nricField, validateNricField));
+    updateNricField.addEventListener('blur', () => validateOnBlur(updateNricField, validateNricField));
     accountNumberField.addEventListener('blur', () => validateOnBlur(accountNumberField, validateAccountNumberField));
 
     document.getElementById('modeOnboarding').addEventListener('click', () => setMode('onboarding'));
     document.getElementById('modeUpdate').addEventListener('click', () => setMode('update'));
+    document.getElementById('sendCodeButton').addEventListener('click', requestVerificationCode);
 
     // Honour ?mode=update deep link
     const params = new URLSearchParams(window.location.search);
@@ -461,10 +590,13 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     }
 
     if (currentMode === 'update') {
+        data.nric = document.getElementById('updateNric').value.trim().toUpperCase();
+        data.verificationCode = document.getElementById('verificationCode').value.trim();
         delete data.employeeType;
         delete data.startDate;
         delete data.endDate;
-        console.log('Update particulars payload:', data);
+        delete data.updateNric;
+        console.log('Update particulars payload:', { ...data, verificationCode: '******', nric: data.nric[0] + '****' + data.nric.slice(-1) });
         submitForm(data, '/api/update-particulars');
         return;
     }

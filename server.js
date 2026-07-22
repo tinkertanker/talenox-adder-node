@@ -78,11 +78,19 @@ app.post('/api/submit-onboarding', (req, res) => {
   handleNetlifyStyle(submitOnboarding.handler, req, res, 'submit-onboarding');
 });
 
+app.post('/api/update-particulars/request-code', (req, res) => {
+  handleNetlifyStyle(updateParticulars.requestCodeHandler, req, res, 'update-particulars-request-code');
+});
+
 app.post('/api/update-particulars', (req, res) => {
   handleNetlifyStyle(updateParticulars.handler, req, res, 'update-particulars');
 });
 
 app.options('/api/submit-onboarding', (req, res) => {
+  res.status(200).end();
+});
+
+app.options('/api/update-particulars/request-code', (req, res) => {
   res.status(200).end();
 });
 
