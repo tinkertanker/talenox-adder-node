@@ -49,12 +49,14 @@ Required environment variables in `.env`:
 ## Features
 
 - **Employee Types**: Support for trainers, interns, and full-time employees
-- **Update Particulars**: Existing employees can update personal and bank details after email verification
+- **Update Particulars**: Existing employees can update personal and bank details after email verification (single-process OTP store)
 - **Data Validation**: NRIC/FIN format validation and required field checks
 - **Banking Integration**: Support for major Singapore banks
 - **Background Processing**: Handles long-running API operations reliably
 - **Email Notifications**: Automatic HR notifications upon submission
 - **PDPA Compliant**: Sensitive data redaction in logs
+
+> **Note:** Update-particulars OTP sessions are stored in memory. Run a single app container/process, or replace the store before scaling horizontally.
 
 ## Project Structure
 

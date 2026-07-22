@@ -6,6 +6,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Honour X-Forwarded-For when behind nginx-proxy
+app.set('trust proxy', 1);
+
 // CORS configuration
 const corsOptions = {
   origin: function(origin, callback) {
@@ -45,13 +48,29 @@ const updateParticulars = require('./backend/update-particulars');
 // Shared Netlify-style handler adapter for Express
 async function handleNetlifyStyle(handler, req, res, label) {
   try {
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIp = req.ip ||
+      (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : null) ||
+      req.socket.remoteAddress ||
+      'unknown';
+
     const event = {
       body: JSON.stringify(req.body),
       headers: req.headers,
-      httpMethod: req.method
+      httpMethod: req.method,
+      clientIp
     };
 
     const result = await handler(event);
+
+    // Apply handler CORS/headers when present (Express cors middleware also applies)
+    if (result.headers && typeof result.headers === 'object') {
+      for (const [key, value] of Object.entries(result.headers)) {
+        if (value !== undefined && value !== null && value !== '') {
+          res.setHeader(key, value);
+        }
+      }
+    }
 
     try {
       const responseBody = typeof result.body === 'string'

@@ -359,11 +359,8 @@ async function requestVerificationCode() {
         updateNricField.readOnly = true;
         updateNricField.value = updateNricField.value.trim().toUpperCase();
 
-        let message = result.message || 'If this NRIC/FIN is on our records, a verification code has been sent to the email we have on file.';
-        if (result.maskedEmail) {
-            message = `A verification code has been sent to ${result.maskedEmail}. Enter it below, then update your particulars.`;
-        }
-        codeSentMessage.textContent = message;
+        codeSentMessage.textContent = result.message ||
+            'If this NRIC/FIN is on our records, a verification code has been sent to the email address we have on file. Check your inbox (and spam folder).';
         codeSentNotice.style.display = 'block';
         verificationCodeGroup.style.display = 'block';
         formDetails.style.display = 'block';
@@ -393,7 +390,7 @@ function showSuccessMessage() {
 
     if (currentMode === 'update') {
         successTitle.textContent = 'Particulars Updated';
-        successSubtitle.textContent = 'Your update has been received and is being processed.';
+        successSubtitle.textContent = 'Your particulars have been updated successfully.';
         onboardingDetails.style.display = 'none';
         updateDetails.style.display = 'block';
     } else {
@@ -498,6 +495,7 @@ async function submitForm(data, endpoint) {
 
         result = await response.json();
 
+        // Onboarding may return 202 (background); update particulars returns 200 after sync PUT
         if (!response.ok && response.status !== HTTP_STATUS.ACCEPTED) {
             throw new Error(result.error || 'Submission failed');
         }
@@ -596,7 +594,6 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
         delete data.startDate;
         delete data.endDate;
         delete data.updateNric;
-        console.log('Update particulars payload:', { ...data, verificationCode: '******', nric: data.nric[0] + '****' + data.nric.slice(-1) });
         submitForm(data, '/api/update-particulars');
         return;
     }
