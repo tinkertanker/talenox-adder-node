@@ -302,26 +302,23 @@ This is an automated notification from the Tinkercademy onboarding system.
   }
 };
 
-// User-facing copy for failure emails (PDPA-safe: no NRIC/bank details)
-const getEmployeeFailureCopy = (errorType) => {
+// User-facing explanation (PDPA-safe: no NRIC/bank details)
+const getFailureExplanation = (errorType) => {
   if (errorType === 'duplicate') {
     return {
-      subject: 'Tinkercademy onboarding — already registered',
-      reason: 'It looks like you are already in our payroll system.',
-      guidance: 'Please do not resubmit the form. Contact HR at hr.onboarding@tinkertanker.com and they will help you from here.'
+      summary: 'It looks like this person is already in the payroll system.',
+      nextSteps: 'Please do not resubmit the form. Reply to this email (or contact hr.onboarding@tinkertanker.com) so HR can help from here.'
     };
   }
 
   return {
-    subject: 'Tinkercademy onboarding — we could not complete your submission',
-    reason: 'We received your form, but could not finish setting up your account.',
-    guidance: 'Please contact HR at hr.onboarding@tinkertanker.com. Mention that your onboarding submission failed so they can follow up.'
+    summary: 'We received the form, but could not finish setting up the account.',
+    nextSteps: 'Please reply to this email (or contact hr.onboarding@tinkertanker.com) so HR can follow up.'
   };
 };
 
-// Send failure notification email to HR
-const sendFailureNotification = async (formData, errorType, errorDetails) => {
-  // Check if Resend is configured
+// One failure email to HR and the submitter together
+const sendFailureNotification = async (formData, { employeeErrorType, hrErrorType, hrErrorDetails }) => {
   if (!process.env.RESEND_API_KEY || !process.env.NOTIFY_EMAIL) {
     console.log('Resend not configured, skipping failure notification');
     return;
@@ -330,94 +327,48 @@ const sendFailureNotification = async (formData, errorType, errorDetails) => {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const employeeTypeText = EMPLOYEE_TYPE_LABELS;
+    const explanation = getFailureExplanation(employeeErrorType);
+    const hrEmail = process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com';
+    const recipients = [hrEmail];
+    if (formData.email && formData.email.toLowerCase() !== hrEmail.toLowerCase()) {
+      recipients.push(formData.email);
+    }
 
     const emailContent = `
-FAILED Employee Onboarding Submission
+Onboarding submission could not be completed
 
-Employee Details:
+What happened:
+${explanation.summary}
+
+What to do next:
+${explanation.nextSteps}
+
+---
+Details (for HR)
 - Name: ${formData.fullName || 'Not provided'}
 - Employee Type: ${employeeTypeText[formData.employeeType] || formData.employeeType || 'Unknown'}
 - Email: ${formData.email || 'Not provided'}
 - Nationality: ${formData.nationality || 'Not provided'}
 - Citizenship Status: ${formData.citizenshipStatus || 'Not provided'}
-
-Failure Details:
-- Error Type: ${errorType}
-- Error Message: ${errorDetails}
+- Error Type: ${hrErrorType}
+- Error Message: ${hrErrorDetails}
 - Timestamp: ${new Date().toISOString()}
-
-Action Required:
-- Review the error details above
-- Check if this requires manual intervention
-- Contact the employee if needed to resubmit
-- The employee has also been emailed a brief explanation
-
-This is an automated failure alert from the Tinkercademy onboarding system.
-    `.trim();
-
-    await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
-      to: [process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com'],
-      subject: `⚠️ FAILED Onboarding: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
-      text: emailContent
-    });
-
-    console.log('Failure notification sent successfully');
-  } catch (error) {
-    console.error('Failed to send failure notification:', error);
-    // Don't throw error - failure notification failure shouldn't break anything
-  }
-};
-
-// Email the submitter when background processing fails (after they already saw the success screen)
-const sendEmployeeFailureNotification = async (formData, errorType) => {
-  if (!process.env.RESEND_API_KEY) {
-    console.log('Resend not configured, skipping employee failure notification');
-    return;
-  }
-
-  if (!formData.email) {
-    console.log('No employee email provided, skipping employee failure notification');
-    return;
-  }
-
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const copy = getEmployeeFailureCopy(errorType);
-    const firstName = (formData.fullName || '').trim().split(/\s+/)[0] || 'there';
-
-    const emailContent = `
-Hi ${firstName},
-
-Thanks for submitting the Tinkercademy onboarding form.
-
-${copy.reason}
-
-${copy.guidance}
 
 This is an automated message from the Tinkercademy onboarding system.
     `.trim();
 
     await resend.emails.send({
       from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
-      to: [formData.email],
-      replyTo: process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com',
-      subject: copy.subject,
+      to: recipients,
+      replyTo: hrEmail,
+      subject: `Onboarding could not be completed: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
       text: emailContent
     });
 
-    console.log('Employee failure notification sent successfully');
+    console.log('Failure notification sent to:', recipients.join(', '));
   } catch (error) {
-    console.error('Failed to send employee failure notification:', error);
+    console.error('Failed to send failure notification:', error);
   }
-};
-
-// Notify HR and the submitter once for a background failure
-const notifyOnboardingFailure = async (formData, { employeeErrorType, hrErrorType, hrErrorDetails }) => {
-  await Promise.allSettled([
-    sendFailureNotification(formData, hrErrorType, hrErrorDetails),
-    sendEmployeeFailureNotification(formData, employeeErrorType)
-  ]);
 };
 
 // Transform data for Talenox API
@@ -700,8 +651,8 @@ async function processOnboarding(formData, requestId) {
     console.error(`[${requestId}] Background processing error:`, error);
     console.error(`[${requestId}] Error stack:`, error.stack);
     
-    // Notify HR and the submitter once (submitter already saw the success screen)
-    await notifyOnboardingFailure(formData, {
+    // One email to HR and the submitter together (submitter already saw the success screen)
+    await sendFailureNotification(formData, {
       employeeErrorType: error.errorType === 'duplicate' ? 'duplicate' : 'system',
       hrErrorType: error.hrErrorType || 'System Error',
       hrErrorDetails: error.hrErrorDetails || `Unexpected error: ${error.message}`
