@@ -307,13 +307,13 @@ const getFailureExplanation = (errorType) => {
   if (errorType === 'duplicate') {
     return {
       summary: 'It looks like this person is already in the payroll system.',
-      nextSteps: 'Please do not resubmit the form. Reply to this email (or contact hr.onboarding@tinkertanker.com) so HR can help from here.'
+      nextSteps: 'Please do not resubmit the form. Reply to this email so HR can help from here.'
     };
   }
 
   return {
     summary: 'We received the form, but could not finish setting up the account.',
-    nextSteps: 'Please reply to this email (or contact hr.onboarding@tinkertanker.com) so HR can follow up.'
+    nextSteps: 'Please reply to this email so HR can follow up.'
   };
 };
 
@@ -328,7 +328,7 @@ const sendFailureNotification = async (formData, { employeeErrorType, hrErrorTyp
     const resend = new Resend(process.env.RESEND_API_KEY);
     const employeeTypeText = EMPLOYEE_TYPE_LABELS;
     const explanation = getFailureExplanation(employeeErrorType);
-    const hrEmail = process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com';
+    const hrEmail = process.env.NOTIFY_EMAIL;
     const recipients = [hrEmail];
     if (formData.email && formData.email.toLowerCase() !== hrEmail.toLowerCase()) {
       recipients.push(formData.email);
@@ -520,7 +520,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         success: true,
-        message: 'Your submission has been accepted and is being processed. If anything goes wrong, we will email you with next steps.',
+        message: 'Your submission has been accepted and is being processed. If account setup fails, we will email you and HR with next steps.',
         requestId: requestId
       })
     };
@@ -608,7 +608,16 @@ async function processOnboarding(formData, requestId) {
       const processingError = new Error(`${errorMessage} - ${errorType}`);
       processingError.errorType = errorType;
       processingError.hrErrorType = `Talenox API Error (${errorType})`;
-      processingError.hrErrorDetails = `${errorMessage} (Status: ${talenoxResponse.status})\nRaw Response: ${errorText.substring(0, 500)}`;
+      // Email-safe details only — raw Talenox body can echo NRIC/bank fields
+      const safeEmailMessage = errorType === 'duplicate'
+        ? 'This employee may already be registered'
+        : 'Failed to create employee in Talenox';
+      processingError.hrErrorDetails = `${safeEmailMessage} (Status: ${talenoxResponse.status})`;
+      console.error(`[${requestId}] Talenox error details (server log only):`, {
+        status: talenoxResponse.status,
+        errorType,
+        rawResponse: errorText.substring(0, 500)
+      });
       throw processingError;
     }
     
