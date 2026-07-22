@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tinkercademy Freelancer Onboarding</title>
+    <title>Tinkercademy Personal Particulars</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,21 +13,41 @@
     <div class="container">
         <div class="header">
             <img src="logo.png" alt="Tinkercademy Logo" class="logo">
-            <h1>Onboarding: Personal Particulars</h1>
-            <p>Welcome to Tinkercademy. We'll collect your information to get you paid.</p>
+            <h1 id="pageTitle">Onboarding: Personal Particulars</h1>
+            <p id="pageSubtitle">Welcome to Tinkercademy. We'll collect your information to get you paid.</p>
         </div>
 
         <form id="onboardingForm">
-            <h2>Employee Type</h2>
-            
-            <div class="form-group">
-                <label for="employeeType">Select Employee Type *</label>
-                <select id="employeeType" name="employeeType" required>
-                    <option value="">Select type</option>
-                    <option value="trainer">Freelance/Contractor</option>
-                    <option value="intern_school">Intern with School Letter</option>
-                    <option value="fulltime">Full-time Employee</option>
-                </select>
+            <div class="mode-toggle" role="group" aria-label="Form mode">
+                <button type="button" class="mode-btn active" data-mode="onboarding" id="modeOnboarding">
+                    New Onboarding
+                </button>
+                <button type="button" class="mode-btn" data-mode="update" id="modeUpdate">
+                    Update Particulars
+                </button>
+            </div>
+
+            <div id="onboardingTypeSection">
+                <h2>Employee Type</h2>
+                
+                <div class="form-group">
+                    <label for="employeeType">Select Employee Type *</label>
+                    <select id="employeeType" name="employeeType" required>
+                        <option value="">Select type</option>
+                        <option value="trainer">Freelance/Contractor</option>
+                        <option value="intern_school">Intern with School Letter</option>
+                        <option value="fulltime">Full-time Employee</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="updateIntro" class="info-box" style="display:none;">
+                <h3>Updating your details</h3>
+                <ul>
+                    <li>Use the same NRIC/FIN already on file with us</li>
+                    <li>We'll match your record and update your personal and bank details</li>
+                    <li>If you can't find your record or need help, contact HR at hr.onboarding@tinkertanker.com</li>
+                </ul>
             </div>
 
             <div id="formDetails" style="display:none;">
@@ -352,18 +372,18 @@
                 <small>Enter your bank account number (not your card number). Usually 9-12 digits, omit dashes.</small>
             </div>
             
-                <button type="submit" class="btn-submit">Submit</button>
+                <button type="submit" class="btn-submit" id="submitButton">Submit</button>
             </div>
         </form>
         
         <div id="successMessage" class="success-container" style="display:none;">
             <div class="header">
                 <img src="logo.png" alt="Tinkercademy Logo" class="logo">
-                <h1>Thank You!</h1>
-                <p>Your information has been received and is being processed.</p>
+                <h1 id="successTitle">Thank You!</h1>
+                <p id="successSubtitle">Your information has been received and is being processed.</p>
             </div>
             
-            <div class="info-box">
+            <div class="info-box" id="onboardingSuccessDetails">
                 <h3>What happens next?</h3>
                 <ul>
                     <li>Your information is being processed in the background - this may take a few minutes</li>
@@ -373,6 +393,16 @@
                     <li>Complete any additional information there. You can also find your employee ID there</li>
                 </ul>
                 <p style="margin-top: 20px; color: #666;">⏰ Processing typically completes within 2-3 minutes. If you don't receive confirmation within 10 minutes, please contact HR at hr.onboarding@tinkertanker.com</p>
+            </div>
+
+            <div class="info-box" id="updateSuccessDetails" style="display:none;">
+                <h3>What happens next?</h3>
+                <ul>
+                    <li>Your particulars are being updated in the background - this may take a few minutes</li>
+                    <li>HR will receive a notification of your update</li>
+                    <li>Your bank and contact details in Talenox will reflect the new information once processing completes</li>
+                </ul>
+                <p style="margin-top: 20px; color: #666;">If your details don't look right after a few minutes, please contact HR at hr.onboarding@tinkertanker.com</p>
             </div>
         </div>
     </div>

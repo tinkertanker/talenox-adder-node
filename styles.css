@@ -52,6 +52,46 @@ form {
     box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
+.mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 28px;
+    padding: 6px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.mode-btn {
+    appearance: none;
+    border: 2px solid transparent;
+    background: transparent;
+    color: #444;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 12px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.mode-btn:hover {
+    background: #fff;
+    color: #000;
+}
+
+.mode-btn.active {
+    background: #1a1a1a;
+    color: #FA8072;
+    border-color: #1a1a1a;
+}
+
+.mode-btn:focus-visible {
+    outline: 2px solid #FA8072;
+    outline-offset: 2px;
+}
+
 h2 {
     color: #000;
     font-size: 20px;
@@ -227,6 +267,10 @@ h2:first-of-type {
     
     .header h1 {
         font-size: 20px;
+    }
+
+    .mode-toggle {
+        grid-template-columns: 1fr;
     }
     
     .form-group input[type="text"],

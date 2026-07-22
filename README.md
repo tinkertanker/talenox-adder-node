@@ -49,6 +49,7 @@ Required environment variables in `.env`:
 ## Features
 
 - **Employee Types**: Support for trainers, interns, and full-time employees
+- **Update Particulars**: Existing employees can update personal and bank details
 - **Data Validation**: NRIC/FIN format validation and required field checks
 - **Banking Integration**: Support for major Singapore banks
 - **Background Processing**: Handles long-running API operations reliably
@@ -58,12 +59,13 @@ Required environment variables in `.env`:
 ## Project Structure
 
 ```
-├── index.html              # Main form interface
+├── index.html              # Main form interface (onboarding + update modes)
 ├── styles.css              # Styling
 ├── script.js               # Form logic
 ├── server.js               # Express.js server
 ├── backend/
-│   └── submit-onboarding.js    # API handler
+│   ├── submit-onboarding.js    # New employee onboarding API
+│   └── update-particulars.js   # Existing employee update API
 ├── docker-compose.yml      # Docker configuration
 ├── Dockerfile              # Container definition
 └── docs/                   # Additional documentation

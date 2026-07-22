@@ -33,13 +33,19 @@ function isLikelyCardNumber(number) {
     return sum % 10 === 0;
 }
 
+let currentMode = 'onboarding'; // 'onboarding' | 'update'
+
 function validateForm() {
     let isValid = true;
-    const requiredFields = ['employeeType', 'fullName', 'email', 'nationality', 'dob', 'gender', 'bank', 'accountName', 'accountNumber'];
+    const requiredFields = ['fullName', 'email', 'nationality', 'citizenshipStatus', 'dob', 'gender', 'bank', 'accountName', 'accountNumber'];
     const checkboxes = [];
-    
+
+    if (currentMode === 'onboarding') {
+        requiredFields.unshift('employeeType');
+    }
+
     clearErrors();
-    
+
     requiredFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (!field.value.trim()) {
@@ -47,7 +53,7 @@ function validateForm() {
             isValid = false;
         }
     });
-    
+
     const emailField = document.getElementById('email');
     const emailError = validateEmailField(emailField);
     if (emailError) {
@@ -82,28 +88,30 @@ function validateForm() {
         showError(accountNumberField, accountError);
         isValid = false;
     }
-    
-    // Validate date fields based on employee type
-    const employeeType = document.getElementById('employeeType').value;
-    if (employeeType === 'intern_school') {
-        const startDate = document.getElementById('startDate');
-        const endDate = document.getElementById('endDate');
-        if (!startDate.value) {
-            showError(startDate, 'Start date is required for interns');
-            isValid = false;
-        }
-        if (!endDate.value) {
-            showError(endDate, 'End date is required for interns');
-            isValid = false;
-        }
-    } else if (employeeType === 'fulltime') {
-        const startDate = document.getElementById('startDate');
-        if (!startDate.value) {
-            showError(startDate, 'Start date is required for full-time employees');
-            isValid = false;
+
+    // Date rules only apply to new onboarding
+    if (currentMode === 'onboarding') {
+        const employeeType = document.getElementById('employeeType').value;
+        if (employeeType === 'intern_school') {
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            if (!startDate.value) {
+                showError(startDate, 'Start date is required for interns');
+                isValid = false;
+            }
+            if (!endDate.value) {
+                showError(endDate, 'End date is required for interns');
+                isValid = false;
+            }
+        } else if (employeeType === 'fulltime') {
+            const startDate = document.getElementById('startDate');
+            if (!startDate.value) {
+                showError(startDate, 'Start date is required for full-time employees');
+                isValid = false;
+            }
         }
     }
-    
+
     return isValid;
 }
 
@@ -131,17 +139,16 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Individual field validators - return error message or null
 function validateEmailField(field) {
     const value = field.value.trim();
-    if (!value) return null; // Don't show required error on blur, only on submit
+    if (!value) return null;
     if (!isValidEmail(value)) return 'Please enter a valid email address';
     return null;
 }
 
 function validateNricField(field) {
     const value = field.value.trim().toUpperCase();
-    if (!value) return null; // Don't show required error on blur
+    if (!value) return null;
     if (value.length === 4 && /^\d{4}$/.test(value)) {
         return 'Please enter your complete 9-character NRIC/FIN, not just the last 4 digits';
     }
@@ -156,7 +163,7 @@ function validateNricField(field) {
 
 function validateAccountNumberField(field) {
     const value = field.value.trim();
-    if (!value) return null; // Don't show required error on blur
+    if (!value) return null;
     if (!/^\d+$/.test(value)) {
         return 'Account number must contain only digits';
     }
@@ -166,7 +173,6 @@ function validateAccountNumberField(field) {
     return null;
 }
 
-// Blur validation handler
 function validateOnBlur(field, validator) {
     clearFieldError(field);
     const error = validator(field);
@@ -177,192 +183,106 @@ function validateOnBlur(field, validator) {
     return true;
 }
 
-// Set up blur listeners
-document.addEventListener('DOMContentLoaded', function() {
-    const emailField = document.getElementById('email');
-    const nricField = document.getElementById('nric');
-    const accountNumberField = document.getElementById('accountNumber');
-
-    emailField.addEventListener('blur', () => validateOnBlur(emailField, validateEmailField));
-    nricField.addEventListener('blur', () => validateOnBlur(nricField, validateNricField));
-    accountNumberField.addEventListener('blur', () => validateOnBlur(accountNumberField, validateAccountNumberField));
-});
-
-// Handle employee type changes
-document.getElementById('employeeType').addEventListener('change', function() {
-    const formDetails = document.getElementById('formDetails');
+function applyEmployeeTypeDateFields(employeeType) {
     const startDateGroup = document.getElementById('startDateGroup');
     const endDateGroup = document.getElementById('endDateGroup');
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
-    
-    // Show the rest of the form when employee type is selected
-    if (this.value) {
-        formDetails.style.display = 'block';
-        // Smooth scroll to the newly revealed section
-        setTimeout(() => {
-            formDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-    } else {
-        formDetails.style.display = 'none';
-    }
-    
-    // Reset fields
+
     startDateGroup.style.display = 'none';
     endDateGroup.style.display = 'none';
     startDate.removeAttribute('required');
     endDate.removeAttribute('required');
-    
-    switch(this.value) {
+
+    if (currentMode !== 'onboarding') {
+        return;
+    }
+
+    switch (employeeType) {
         case 'trainer':
-            // Trainers don't fill dates, we auto-fill 1st of last month
             break;
         case 'intern_school':
-            // Interns need both start and end dates
             startDateGroup.style.display = 'block';
             endDateGroup.style.display = 'block';
             startDate.setAttribute('required', 'true');
             endDate.setAttribute('required', 'true');
             break;
         case 'fulltime':
-            // Full-timers only need start date
             startDateGroup.style.display = 'block';
             startDate.setAttribute('required', 'true');
             break;
     }
-});
+}
 
-// Track if submission is in progress to prevent multiple submissions
-let isSubmitting = false;
+function setMode(mode) {
+    currentMode = mode;
 
-// HTTP status code constants
-const HTTP_STATUS = {
-    OK: 200,
-    ACCEPTED: 202
-};
+    const onboardingBtn = document.getElementById('modeOnboarding');
+    const updateBtn = document.getElementById('modeUpdate');
+    const onboardingTypeSection = document.getElementById('onboardingTypeSection');
+    const updateIntro = document.getElementById('updateIntro');
+    const formDetails = document.getElementById('formDetails');
+    const employeeType = document.getElementById('employeeType');
+    const submitButton = document.getElementById('submitButton');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageSubtitle = document.getElementById('pageSubtitle');
 
-async function submitToNetlify(data) {
-    // Prevent multiple submissions
-    if (isSubmitting) {
-        console.log('Submission already in progress, ignoring duplicate request');
-        return;
-    }
-    
-    isSubmitting = true;
-    
-    // Show loading state
-    const submitButton = document.querySelector('.btn-submit');
-    const originalText = submitButton.textContent;
-    submitButton.textContent = 'Submitting...';
-    submitButton.disabled = true;
-    
-    // Add a hard timeout failsafe
-    const hardTimeoutId = setTimeout(() => {
-        if (isSubmitting) {
-            alert('Submission is taking longer than expected.\n\nYour submission may still be processing. Please check your email for confirmation.\n\nIf you don\'t receive confirmation within 5 minutes, please contact HR at hr.onboarding@tinkertanker.com');
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-            isSubmitting = false;
-        }
-    }, 90000); // 90 seconds hard timeout
-    
-    try {
-        // Add timeout to prevent hanging (60 seconds)
-        const controller = window.AbortController ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
-        
-        const fetchOptions = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        };
-        
-        // Only add signal if AbortController is supported
-        if (controller) {
-            fetchOptions.signal = controller.signal;
-        }
-        
-        const response = await fetch('/api/submit-onboarding', fetchOptions);
-        
-        // Clear timeouts
-        if (timeoutId) clearTimeout(timeoutId);
-        clearTimeout(hardTimeoutId);
-        
-        const result = await response.json();
-        
-        // Accept both 200 (compatibility) and 202 (background processing)
-        if (!response.ok && response.status !== HTTP_STATUS.ACCEPTED) {
-            throw new Error(result.error || 'Submission failed');
-        }
-        
-        // Success - hide form and show success message
-        document.getElementById('onboardingForm').style.display = 'none';
-        document.getElementById('successMessage').style.display = 'block';
-        
-        // Scroll to top
-        window.scrollTo(0, 0);
-        
-        // Reset submission flag
-        isSubmitting = false;
-        
-    } catch (error) {
-        console.error('Submission error:', error);
-        
-        // Clear hard timeout
-        clearTimeout(hardTimeoutId);
-        
-        // Handle timeout specifically
-        if (error.name === 'AbortError') {
-            alert('Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check your email for confirmation before trying again, or contact HR at hr.onboarding@tinkertanker.com');
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-            isSubmitting = false;
-            return;
-        }
-        
-        // Try to get more specific error info from the response
-        let errorMessage = error.message;
-        let errorDetails = 'Please try again or contact support.';
-        
-        if (result && result.details) {
-            errorDetails = result.details;
-        }
-        
-        if (result && result.errorType === 'duplicate') {
-            errorMessage = 'Already Registered';
-            errorDetails = result.details || 'It looks like you\'re already in our system. Please contact HR at hr.onboarding@tinkertanker.com instead of resubmitting.';
-        }
-        
-        // Show error message with better formatting
-        alert(`${errorMessage}\n\n${errorDetails}`);
-        
-        // Reset button
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-        isSubmitting = false;
+    onboardingBtn.classList.toggle('active', mode === 'onboarding');
+    updateBtn.classList.toggle('active', mode === 'update');
+    onboardingBtn.setAttribute('aria-pressed', mode === 'onboarding' ? 'true' : 'false');
+    updateBtn.setAttribute('aria-pressed', mode === 'update' ? 'true' : 'false');
+
+    clearErrors();
+
+    if (mode === 'update') {
+        pageTitle.textContent = 'Update Personal Particulars';
+        pageSubtitle.textContent = 'Already onboarded? Update your personal or bank details here.';
+        onboardingTypeSection.style.display = 'none';
+        updateIntro.style.display = 'block';
+        formDetails.style.display = 'block';
+        employeeType.removeAttribute('required');
+        employeeType.value = '';
+        submitButton.textContent = 'Update Particulars';
+        applyEmployeeTypeDateFields('');
+    } else {
+        pageTitle.textContent = 'Onboarding: Personal Particulars';
+        pageSubtitle.textContent = "Welcome to Tinkercademy. We'll collect your information to get you paid.";
+        onboardingTypeSection.style.display = 'block';
+        updateIntro.style.display = 'none';
+        employeeType.setAttribute('required', 'true');
+        submitButton.textContent = 'Submit';
+        formDetails.style.display = employeeType.value ? 'block' : 'none';
+        applyEmployeeTypeDateFields(employeeType.value);
     }
 }
 
-document.getElementById('onboardingForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-        return;
+function showSuccessMessage() {
+    document.getElementById('onboardingForm').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'block';
+
+    const onboardingDetails = document.getElementById('onboardingSuccessDetails');
+    const updateDetails = document.getElementById('updateSuccessDetails');
+    const successTitle = document.getElementById('successTitle');
+    const successSubtitle = document.getElementById('successSubtitle');
+
+    if (currentMode === 'update') {
+        successTitle.textContent = 'Particulars Updated';
+        successSubtitle.textContent = 'Your update has been received and is being processed.';
+        onboardingDetails.style.display = 'none';
+        updateDetails.style.display = 'block';
+    } else {
+        successTitle.textContent = 'Thank You!';
+        successSubtitle.textContent = 'Your information has been received and is being processed.';
+        onboardingDetails.style.display = 'block';
+        updateDetails.style.display = 'none';
     }
-    
-    const formData = new FormData(this);
-    const data = {};
-    
-    for (let [key, value] of formData.entries()) {
-        data[key] = value;
-    }
-    
-    // Add computed fields based on employee type
+
+    window.scrollTo(0, 0);
+}
+
+function buildOnboardingPayload(data) {
     const employeeType = data.employeeType;
-    
-    // Set immigration status
+
     if (employeeType === 'trainer' || employeeType === 'intern_school') {
         data.immigrationStatus = 'Contract (No CPF, No SDL)';
     } else if (employeeType === 'fulltime') {
@@ -374,41 +294,182 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
             data.immigrationStatus = 'Work Pass Holder';
         }
     }
-    
-    // Set job title
+
     if (employeeType === 'trainer') {
         data.jobTitle = 'Freelance Trainer';
     } else if (employeeType === 'intern_school') {
         data.jobTitle = 'Tinkercademy Intern';
     }
-    
-    // Set dates for trainers
+
     if (employeeType === 'trainer') {
         const lastMonth = new Date();
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         lastMonth.setDate(1);
         data.startDate = lastMonth.toISOString().split('T')[0];
-        
-        // Set end date as the day after start date
+
         const endDate = new Date(lastMonth);
         endDate.setDate(endDate.getDate() + 1);
         data.endDate = endDate.toISOString().split('T')[0];
-    }
-    
-    // Set basic salary (0 for freelancers)
-    if (employeeType === 'trainer') {
         data.basicSalary = 0;
     }
-    
-    // Determine SHG requirement
-    if (employeeType === 'fulltime') {
-        data.requiresSHG = true;
-    } else {
-        data.requiresSHG = false;
+
+    data.requiresSHG = employeeType === 'fulltime';
+    return data;
+}
+
+// Track if submission is in progress to prevent multiple submissions
+let isSubmitting = false;
+
+const HTTP_STATUS = {
+    OK: 200,
+    ACCEPTED: 202
+};
+
+async function submitForm(data, endpoint) {
+    if (isSubmitting) {
+        console.log('Submission already in progress, ignoring duplicate request');
+        return;
     }
-    
-    console.log('Form Data with computed fields:', data);
-    
-    // Submit to Netlify Function
-    submitToNetlify(data);
+
+    isSubmitting = true;
+
+    const submitButton = document.querySelector('.btn-submit');
+    const originalText = submitButton.textContent;
+    submitButton.textContent = currentMode === 'update' ? 'Updating...' : 'Submitting...';
+    submitButton.disabled = true;
+
+    let result = null;
+
+    const hardTimeoutId = setTimeout(() => {
+        if (isSubmitting) {
+            alert('Submission is taking longer than expected.\n\nYour submission may still be processing. Please check with HR if you are unsure.\n\nIf you don\'t receive confirmation within 5 minutes, please contact HR at hr.onboarding@tinkertanker.com');
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+            isSubmitting = false;
+        }
+    }, 90000);
+
+    try {
+        const controller = window.AbortController ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 60000) : null;
+
+        const fetchOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        };
+
+        if (controller) {
+            fetchOptions.signal = controller.signal;
+        }
+
+        const response = await fetch(endpoint, fetchOptions);
+
+        if (timeoutId) clearTimeout(timeoutId);
+        clearTimeout(hardTimeoutId);
+
+        result = await response.json();
+
+        if (!response.ok && response.status !== HTTP_STATUS.ACCEPTED) {
+            throw new Error(result.error || 'Submission failed');
+        }
+
+        showSuccessMessage();
+        isSubmitting = false;
+    } catch (error) {
+        console.error('Submission error:', error);
+        clearTimeout(hardTimeoutId);
+
+        if (error.name === 'AbortError') {
+            alert('Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check with HR before trying again, or contact hr.onboarding@tinkertanker.com');
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+            isSubmitting = false;
+            return;
+        }
+
+        let errorMessage = error.message;
+        let errorDetails = 'Please try again or contact support.';
+
+        if (result && result.details) {
+            errorDetails = Array.isArray(result.details)
+                ? result.details.join('\n')
+                : result.details;
+        }
+
+        if (result && result.errorType === 'duplicate') {
+            errorMessage = 'Already Registered';
+            errorDetails = result.details || 'It looks like you\'re already in our system. Please contact HR at hr.onboarding@tinkertanker.com instead of resubmitting.';
+        }
+
+        alert(`${errorMessage}\n\n${errorDetails}`);
+
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        isSubmitting = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const emailField = document.getElementById('email');
+    const nricField = document.getElementById('nric');
+    const accountNumberField = document.getElementById('accountNumber');
+
+    emailField.addEventListener('blur', () => validateOnBlur(emailField, validateEmailField));
+    nricField.addEventListener('blur', () => validateOnBlur(nricField, validateNricField));
+    accountNumberField.addEventListener('blur', () => validateOnBlur(accountNumberField, validateAccountNumberField));
+
+    document.getElementById('modeOnboarding').addEventListener('click', () => setMode('onboarding'));
+    document.getElementById('modeUpdate').addEventListener('click', () => setMode('update'));
+
+    // Honour ?mode=update deep link
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'update') {
+        setMode('update');
+    }
+});
+
+document.getElementById('employeeType').addEventListener('change', function() {
+    const formDetails = document.getElementById('formDetails');
+
+    if (this.value) {
+        formDetails.style.display = 'block';
+        setTimeout(() => {
+            formDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    } else {
+        formDetails.style.display = 'none';
+    }
+
+    applyEmployeeTypeDateFields(this.value);
+});
+
+document.getElementById('onboardingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (!validateForm()) {
+        return;
+    }
+
+    const formData = new FormData(this);
+    const data = {};
+
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+
+    if (currentMode === 'update') {
+        delete data.employeeType;
+        delete data.startDate;
+        delete data.endDate;
+        console.log('Update particulars payload:', data);
+        submitForm(data, '/api/update-particulars');
+        return;
+    }
+
+    const payload = buildOnboardingPayload(data);
+    console.log('Form Data with computed fields:', payload);
+    submitForm(payload, '/api/submit-onboarding');
 });
