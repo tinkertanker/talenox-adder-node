@@ -63,10 +63,15 @@ async function handleNetlifyStyle(handler, req, res, label) {
 
     const result = await handler(event);
 
-    // Apply handler CORS/headers when present (Express cors middleware also applies)
+    // Express middleware owns CORS; do not let function-style handlers override it.
     if (result.headers && typeof result.headers === 'object') {
       for (const [key, value] of Object.entries(result.headers)) {
-        if (value !== undefined && value !== null && value !== '') {
+        if (
+          !key.toLowerCase().startsWith('access-control-') &&
+          value !== undefined &&
+          value !== null &&
+          value !== ''
+        ) {
           res.setHeader(key, value);
         }
       }
@@ -98,11 +103,15 @@ app.post('/api/submit-onboarding', (req, res) => {
 });
 
 app.post('/api/update-particulars/request-code', (req, res) => {
-  handleNetlifyStyle(updateParticulars.requestCodeHandler, req, res, 'update-particulars-request-code');
+  return handleNetlifyStyle(updateParticulars.requestCodeHandler, req, res, 'update-particulars-request-code');
+});
+
+app.post('/api/update-particulars/verify-code', (req, res) => {
+  return handleNetlifyStyle(updateParticulars.verifyCodeHandler, req, res, 'update-particulars-verify-code');
 });
 
 app.post('/api/update-particulars', (req, res) => {
-  handleNetlifyStyle(updateParticulars.handler, req, res, 'update-particulars');
+  return handleNetlifyStyle(updateParticulars.handler, req, res, 'update-particulars');
 });
 
 app.options('/api/submit-onboarding', (req, res) => {
@@ -110,6 +119,10 @@ app.options('/api/submit-onboarding', (req, res) => {
 });
 
 app.options('/api/update-particulars/request-code', (req, res) => {
+  res.status(200).end();
+});
+
+app.options('/api/update-particulars/verify-code', (req, res) => {
   res.status(200).end();
 });
 

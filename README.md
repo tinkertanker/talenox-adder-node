@@ -49,7 +49,7 @@ Required environment variables in `.env`:
 ## Features
 
 - **Employee Types**: Support for trainers, interns, and full-time employees
-- **Update Particulars**: Existing employees can update personal and bank details after email verification (single-process OTP store)
+- **Update Particulars**: Existing employees can use the link at the bottom of the onboarding page to verify their email and update personal or bank details
 - **Data Validation**: NRIC/FIN format validation and required field checks
 - **Banking Integration**: Support for major Singapore banks
 - **Background Processing**: Handles long-running API operations reliably
@@ -78,6 +78,9 @@ Required environment variables in `.env`:
 Use the included test tools:
 
 ```bash
+# Automated update-particulars tests
+npm test
+
 # Command-line API testing
 node test-api.js [trainer|intern|fulltime]
 
