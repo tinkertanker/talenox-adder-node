@@ -5,10 +5,36 @@ const { Resend } = require('resend');
 
 // Helper function to redact sensitive data for logging
 const redactSensitiveData = (data) => {
-  const redacted = { ...data };
-  if (redacted.nric) redacted.nric = redacted.nric.substring(0, 1) + '****' + redacted.nric.slice(-1);
-  if (redacted.accountNumber) redacted.accountNumber = '****' + redacted.accountNumber.slice(-4);
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) return data.map(redactSensitiveData);
+  if (typeof data !== 'object') return data;
+
+  const redacted = {};
+  for (const [key, value] of Object.entries(data)) {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === 'nric' || lowerKey === 'ssn') {
+      const text = String(value || '');
+      redacted[key] = text ? `${text.slice(0, 1)}****${text.slice(-1)}` : value;
+    } else if (
+      lowerKey === 'accountnumber' ||
+      lowerKey === 'account_number' ||
+      lowerKey === 'number'
+    ) {
+      const text = String(value || '');
+      redacted[key] = text ? `****${text.slice(-4)}` : value;
+    } else {
+      redacted[key] = redactSensitiveData(value);
+    }
+  }
   return redacted;
+};
+
+const sendEmailOrThrow = async (resend, payload) => {
+  const result = await resend.emails.send(payload);
+  if (result && result.error) {
+    throw new Error(result.error.message || 'Email service rejected the request');
+  }
+  return result ? result.data : null;
 };
 
 // Validate NRIC/FIN format (Singapore specific)
@@ -288,7 +314,7 @@ Next Steps:
 This is an automated notification from the Tinkercademy onboarding system.
     `.trim();
 
-    await resend.emails.send({
+    await sendEmailOrThrow(resend, {
       from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
       to: [process.env.NOTIFY_EMAIL || 'hr.onboarding@tinkertanker.com'],
       subject: `New Employee: ${formData.fullName} (${employeeTypeText[formData.employeeType] || formData.employeeType})`,
@@ -318,14 +344,18 @@ const getFailureExplanation = (errorType) => {
 };
 
 // One failure email to HR and the submitter together
-const sendFailureNotification = async (formData, { employeeErrorType, hrErrorType, hrErrorDetails }) => {
+const sendFailureNotification = async (
+  formData,
+  { employeeErrorType, hrErrorType, hrErrorDetails },
+  resendClient = null
+) => {
   if (!process.env.RESEND_API_KEY || !process.env.NOTIFY_EMAIL) {
     console.log('Resend not configured, skipping failure notification');
     return;
   }
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = resendClient || new Resend(process.env.RESEND_API_KEY);
     const employeeTypeText = EMPLOYEE_TYPE_LABELS;
     const explanation = getFailureExplanation(employeeErrorType);
     const hrEmail = process.env.NOTIFY_EMAIL;
@@ -364,14 +394,14 @@ This is an automated message from the Tinkercademy onboarding system.
     };
 
     try {
-      await resend.emails.send({ ...payload, to: recipients });
-      console.log('Failure notification sent to:', recipients.join(', '));
+      await sendEmailOrThrow(resend, { ...payload, to: recipients });
+      console.log('Failure notification sent successfully');
     } catch (sharedSendError) {
       // Do not let a bad submitter address block the HR alert
-      console.error('Shared failure email failed, retrying HR-only:', sharedSendError);
+      console.error('Shared failure email failed, retrying HR-only');
       if (recipients.length > 1) {
-        await resend.emails.send({ ...payload, to: [hrEmail] });
-        console.log('Failure notification sent to HR only:', hrEmail);
+        await sendEmailOrThrow(resend, { ...payload, to: [hrEmail] });
+        console.log('Failure notification sent to HR only');
       } else {
         throw sharedSendError;
       }
@@ -586,18 +616,11 @@ async function processOnboarding(formData, requestId) {
     
     if (!talenoxResponse.ok) {
       const errorText = await talenoxResponse.text();
-      console.error('Talenox API error:', talenoxResponse.status, errorText);
-      
       let errorMessage = 'Failed to create employee in Talenox';
       let errorType = 'unknown';
       
       try {
         const errorData = JSON.parse(errorText);
-        console.error('Talenox Error Response:', {
-          status: talenoxResponse.status,
-          data: errorData,
-          headers: Object.fromEntries(talenoxResponse.headers.entries())
-        });
         
         // Try to detect duplicate submissions based on common patterns
         const errorString = JSON.stringify(errorData).toLowerCase();
@@ -607,12 +630,9 @@ async function processOnboarding(formData, requestId) {
             errorString.includes('unique')) {
           errorType = 'duplicate';
           errorMessage = 'This employee may already be registered';
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
         }
       } catch (e) {
-        // Not JSON error response
-        console.error('Non-JSON error response:', errorText);
+        // A non-JSON response is still classified without logging its body.
       }
       
       const processingError = new Error(`${errorMessage} - ${errorType}`);
@@ -623,10 +643,9 @@ async function processOnboarding(formData, requestId) {
         ? 'This employee may already be registered'
         : 'Failed to create employee in Talenox';
       processingError.hrErrorDetails = `${safeEmailMessage} (Status: ${talenoxResponse.status})`;
-      console.error(`[${requestId}] Talenox error details (server log only):`, {
+      console.error(`[${requestId}] Talenox employee creation failed:`, {
         status: talenoxResponse.status,
-        errorType,
-        rawResponse: errorText.substring(0, 500)
+        errorType
       });
       throw processingError;
     }
@@ -685,3 +704,10 @@ async function processOnboarding(formData, requestId) {
     throw error;
   }
 }
+
+exports._testing = {
+  redactSensitiveData,
+  sendEmailOrThrow,
+  sendFailureNotification,
+  processOnboarding
+};
