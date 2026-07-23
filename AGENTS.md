@@ -52,7 +52,7 @@ This project creates a simplified onboarding form for Tinkercademy employees tha
 - **Comprehensive nationality list** with 200+ countries from Talenox
 - **HR email notifications** using Resend API with PDPA-compliant content
 - **Internal employee ID tracking** in notifications (300+ range)
-- **Email address standardization** to hr.onboarding@tinkertanker.com
+- **Employee-facing HR contact** standardised to hr.onboarding@tk.sg
 - **Code cleanup and optimization** - removed debug code and test files
 - **Documentation updates** - comprehensive README and development notes
 
@@ -201,6 +201,10 @@ RESEND_API_KEY=your_resend_api_key
 NOTIFY_EMAIL=hr.onboarding@tinkertanker.com
 FROM_EMAIL=Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>
 ```
+
+Employee-facing help copy uses `hr.onboarding@tk.sg`. `NOTIFY_EMAIL` and
+`FROM_EMAIL` remain separate delivery configuration and may use the
+`tinkertanker.com` sender/notification mailbox.
 
 ### Testing Checklist
 - [x] All employee types create correct data
