@@ -362,7 +362,14 @@ const validateUpdateFormData = (data, originalSnapshot) => {
   if (data.citizenshipStatus && !ALLOWED_CITIZENSHIP.has(data.citizenshipStatus)) {
     errors.push('Invalid citizenship status');
   }
-  if (data.bank && !ALLOWED_BANKS.has(data.bank)) {
+  // Existing Talenox records contain legacy bank labels that are no longer in
+  // the form's canonical list. Preserve an unchanged server-sourced value,
+  // while still rejecting arbitrary new values supplied by the client.
+  if (
+    data.bank &&
+    data.bank !== originalSnapshot.bank &&
+    !ALLOWED_BANKS.has(data.bank)
+  ) {
     errors.push('Invalid bank selection');
   }
   if (data.dob) {
