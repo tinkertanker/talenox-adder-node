@@ -484,7 +484,7 @@ const sendVerificationEmail = (to, code, employeeName) => sendResendEmail({
 
 Your verification code for updating personal particulars is: ${code}
 
-This code expires in 10 minutes. If you did not request this, you can ignore this email and contact HR at hr.onboarding@tinkertanker.com.
+This code expires in 10 minutes. If you did not request this, you can ignore this email and contact HR at hr.onboarding@tk.sg.
 
 — Tinkercademy Onboarding`
 });
@@ -496,7 +496,7 @@ const sendEmailChangeNotice = (oldEmail, newEmail, employeeName) => sendResendEm
 
 Your payroll email on file was changed from ${oldEmail} to ${newEmail}.
 
-If you did not request this change, contact HR immediately at hr.onboarding@tinkertanker.com.
+If you did not request this change, contact HR immediately at hr.onboarding@tk.sg.
 
 — Tinkercademy Onboarding`
 });
@@ -807,7 +807,7 @@ exports.handler = async (event) => {
     return jsonResponse(statusCode, {
       error: statusCode === 400 ? 'No changes detected' : 'Update failed',
       details: error.publicMessage ||
-        'We could not update your particulars. Please try again or contact HR at hr.onboarding@tinkertanker.com.',
+        'We could not update your particulars. Please try again or contact HR at hr.onboarding@tk.sg.',
       requestId
     });
   }

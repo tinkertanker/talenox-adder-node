@@ -563,7 +563,7 @@ async function submitForm(data, endpoint) {
             const guidance = currentMode === 'update'
                 ? 'Your update may still be processing. Please check with HR if you are unsure.'
                 : 'Your submission may still be processing. Please check your email for confirmation.';
-            alert(`Submission is taking longer than expected.\n\n${guidance}\n\nIf you don't receive confirmation within 5 minutes, please contact HR at hr.onboarding@tinkertanker.com`);
+            alert(`Submission is taking longer than expected.\n\n${guidance}\n\nIf you don't receive confirmation within 5 minutes, please contact HR at hr.onboarding@tk.sg`);
             submitButton.textContent = originalText;
             submitButton.disabled = false;
             isSubmitting = false;
@@ -606,8 +606,8 @@ async function submitForm(data, endpoint) {
 
         if (error.name === 'AbortError') {
             const timeoutMessage = currentMode === 'update'
-                ? 'Submission timed out after 60 seconds.\n\nYour update may still be processing. Please check with HR before trying again, or contact hr.onboarding@tinkertanker.com.'
-                : 'Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check your email for confirmation before trying again, or contact HR at hr.onboarding@tinkertanker.com';
+                ? 'Submission timed out after 60 seconds.\n\nYour update may still be processing. Please check with HR before trying again, or contact hr.onboarding@tk.sg.'
+                : 'Submission timed out after 60 seconds.\n\nThis might mean your submission is still being processed. Please check your email for confirmation before trying again, or contact HR at hr.onboarding@tk.sg';
             alert(timeoutMessage);
             submitButton.textContent = originalText;
             submitButton.disabled = false;
@@ -626,7 +626,7 @@ async function submitForm(data, endpoint) {
 
         if (result && result.errorType === 'duplicate') {
             errorMessage = 'Already Registered';
-            errorDetails = result.details || 'It looks like you\'re already in our system. Please contact HR at hr.onboarding@tinkertanker.com instead of resubmitting.';
+            errorDetails = result.details || 'It looks like you\'re already in our system. Please contact HR at hr.onboarding@tk.sg instead of resubmitting.';
         }
 
         alert(`${errorMessage}\n\n${errorDetails}`);
