@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { inspect } = require('node:util');
 
 const submitOnboarding = require('./submit-onboarding');
 
@@ -110,6 +111,7 @@ test('a Talenox employee-creation failure never logs its response body', async (
   const originalFetch = global.fetch;
   const originalError = console.error;
   const originalLog = console.log;
+  const originalResendApiKey = process.env.RESEND_API_KEY;
   const output = [];
   let requestCount = 0;
 
@@ -132,6 +134,7 @@ test('a Talenox employee-creation failure never logs its response body', async (
   };
   console.error = (...args) => output.push(args);
   console.log = (...args) => output.push(args);
+  delete process.env.RESEND_API_KEY;
 
   try {
     await assert.rejects(
@@ -145,9 +148,15 @@ test('a Talenox employee-creation failure never logs its response body', async (
     global.fetch = originalFetch;
     console.error = originalError;
     console.log = originalLog;
+    process.env.RESEND_API_KEY = originalResendApiKey;
   }
 
-  const serialisedOutput = JSON.stringify(output);
+  const serialisedOutput = output
+    .flat()
+    .map((value) => value instanceof Error
+      ? `${value.name}: ${value.message}\n${value.stack || ''}`
+      : inspect(value, { depth: null }))
+    .join('\n');
   assert.equal(serialisedOutput.includes(sentinelNric), false);
   assert.equal(serialisedOutput.includes(sentinelAccount), false);
   assert.match(serialisedOutput, /Talenox employee creation failed/);

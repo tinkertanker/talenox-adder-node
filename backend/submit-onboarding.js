@@ -184,8 +184,7 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate,
       console.log(`[${requestId}] Job created successfully:`, jobResult.id);
       return jobResult;
     } else {
-      const errorText = await jobResponse.text();
-      console.error('Job creation failed:', jobResponse.status, errorText);
+      console.error('Job creation failed with status:', jobResponse.status);
       throw new Error(`Job creation failed: ${jobResponse.status}`);
     }
     
@@ -213,11 +212,6 @@ const getNextEmployeeId = async () => {
     if (response.ok) {
       const employees = await response.json();
       console.log('Found', employees.length || 0, 'existing employees');
-      
-      // Log sample employee structure for debugging (only in development)
-      if (employees && employees.length > 0 && process.env.NODE_ENV === 'development') {
-        console.log('Sample employee object:', JSON.stringify(employees[0], null, 2));
-      }
       
       // Look for Employee ID field (not database ID) - try multiple field names
       let maxEmployeeId = 0;
@@ -323,7 +317,7 @@ This is an automated notification from the Tinkercademy onboarding system.
 
     console.log('Notification sent successfully');
   } catch (error) {
-    console.error('Failed to send notification:', error);
+    console.error('Failed to send notification');
     // Don't throw error - email failure shouldn't break the main flow
   }
 };
@@ -407,7 +401,7 @@ This is an automated message from the Tinkercademy onboarding system.
       }
     }
   } catch (error) {
-    console.error('Failed to send failure notification:', error);
+    console.error('Failed to send failure notification');
   }
 };
 
