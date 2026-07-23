@@ -191,6 +191,57 @@ test('an unchanged Other classification is preserved rather than mapped to contr
   assert.equal(putBody.employee.citizenship, undefined);
 });
 
+test('an unchanged legacy bank label is preserved during an unrelated update', async () => {
+  const employee = makeEmployee({
+    bank_account: {
+      id: 77,
+      bank_type: 'OCBC',
+      account_name: 'Alex Tan',
+      number: '123456789'
+    }
+  });
+  const runtimeState = createRuntime(employee);
+  const verified = await requestAndVerify(runtimeState);
+
+  const result = parseResult(await updateParticulars.handler(makeEvent({
+    ...verified.particulars,
+    email: 'alex.new@example.com',
+    accountNumber: '',
+    updateToken: verified.updateToken
+  })));
+
+  assert.equal(result.status, 200);
+  const putBody = JSON.parse(
+    runtimeState.calls.find((call) => call.options.method === 'PUT').options.body
+  );
+  assert.deepEqual(putBody, { employee: { email: 'alex.new@example.com' } });
+  assert.equal(putBody.employee.bank_account_attributes, undefined);
+});
+
+test('changing a legacy bank label to an unsupported value is rejected', async () => {
+  const employee = makeEmployee({
+    bank_account: {
+      id: 77,
+      bank_type: 'OCBC',
+      account_name: 'Alex Tan',
+      number: '123456789'
+    }
+  });
+  const runtimeState = createRuntime(employee);
+  const verified = await requestAndVerify(runtimeState);
+
+  const result = parseResult(await updateParticulars.handler(makeEvent({
+    ...verified.particulars,
+    bank: 'Not A Bank',
+    accountNumber: '',
+    updateToken: verified.updateToken
+  })));
+
+  assert.equal(result.status, 400);
+  assert.match(result.body.details.join('\n'), /Invalid bank selection/);
+  assert.equal(runtimeState.calls.some((call) => call.options.method === 'PUT'), false);
+});
+
 test('five incorrect codes invalidate the OTP', async () => {
   const runtimeState = createRuntime(makeEmployee());
   await updateParticulars.requestCodeHandler(makeEvent({ nric: NRIC }));

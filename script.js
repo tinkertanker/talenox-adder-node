@@ -397,6 +397,19 @@ async function requestVerificationCode() {
 }
 
 function populateUpdateForm(particulars) {
+    const bankSelect = document.getElementById('bank');
+    bankSelect.querySelectorAll('option[data-current-bank]').forEach((option) => option.remove());
+    if (
+        particulars.bank &&
+        !Array.from(bankSelect.options).some((option) => option.value === particulars.bank)
+    ) {
+        const currentBankOption = document.createElement('option');
+        currentBankOption.value = particulars.bank;
+        currentBankOption.textContent = `${particulars.bank} (current)`;
+        currentBankOption.dataset.currentBank = 'true';
+        bankSelect.appendChild(currentBankOption);
+    }
+
     const fieldIds = [
         'fullName',
         'email',
