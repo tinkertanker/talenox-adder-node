@@ -343,7 +343,10 @@ const sendFailureNotification = async (
   { employeeErrorType, hrErrorType, hrErrorDetails },
   resendClient = null
 ) => {
-  if (!process.env.RESEND_API_KEY || !process.env.NOTIFY_EMAIL) {
+  if (
+    !process.env.NOTIFY_EMAIL ||
+    (!resendClient && !process.env.RESEND_API_KEY)
+  ) {
     console.log('Resend not configured, skipping failure notification');
     return;
   }

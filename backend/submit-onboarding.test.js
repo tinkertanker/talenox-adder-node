@@ -64,6 +64,27 @@ test('a resolved Resend error triggers the HR-only failure-email fallback', asyn
   assert.deepEqual(resend.calls[1].to, ['hr@example.com']);
 });
 
+test('an injected Resend client does not require a configured API key', async () => {
+  const resend = makeResendClient([
+    { data: { id: 'email-1' }, error: null }
+  ]);
+  const originalResendApiKey = process.env.RESEND_API_KEY;
+  delete process.env.RESEND_API_KEY;
+
+  try {
+    await submitOnboarding._testing.sendFailureNotification(
+      formData,
+      failureDetails,
+      resend
+    );
+  } finally {
+    process.env.RESEND_API_KEY = originalResendApiKey;
+  }
+
+  assert.equal(resend.calls.length, 1);
+  assert.deepEqual(resend.calls[0].to, ['hr@example.com', 'alex@example.com']);
+});
+
 test('an HR-only fallback is not reported as successful when Resend rejects it', async () => {
   const resend = makeResendClient([
     { data: null, error: { message: 'Invalid recipient' } },
