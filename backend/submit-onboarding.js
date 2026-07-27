@@ -3,7 +3,7 @@
 // Initialize Resend for email notifications
 const { Resend } = require('resend');
 
-// Helper function to redact sensitive data for logging
+// Helper function to redact sensitive data for logging (PDPA compliant)
 const redactSensitiveData = (data) => {
   if (data === null || data === undefined) return data;
   if (Array.isArray(data)) return data.map(redactSensitiveData);
@@ -12,7 +12,7 @@ const redactSensitiveData = (data) => {
   const redacted = {};
   for (const [key, value] of Object.entries(data)) {
     const lowerKey = key.toLowerCase();
-    if (lowerKey === 'nric' || lowerKey === 'ssn') {
+    if (lowerKey === 'nric' || lowerKey === 'ssn' || lowerKey === 'fin') {
       const text = String(value || '');
       redacted[key] = text ? `${text.slice(0, 1)}****${text.slice(-1)}` : value;
     } else if (
@@ -22,6 +22,8 @@ const redactSensitiveData = (data) => {
     ) {
       const text = String(value || '');
       redacted[key] = text ? `****${text.slice(-4)}` : value;
+    } else if (lowerKey === 'bank_account_attributes' && typeof value === 'object' && value !== null) {
+      redacted[key] = redactSensitiveData(value);
     } else {
       redacted[key] = redactSensitiveData(value);
     }
@@ -436,7 +438,7 @@ const transformForTalenox = async (formData) => {
       } else if (citizenshipStatus === 'sg_pr') {
         return 'Singapore PR';
       } else {
-        return 'Singapore Citizen'; // Default for full-timers
+        return 'Work Pass Holder'; // Fixed: foreign workers default to Work Pass Holder
       }
     }
     return 'Contract (No CPF, No SDL)'; // Default fallback
