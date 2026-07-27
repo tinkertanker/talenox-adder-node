@@ -153,6 +153,37 @@ function validateEmailField(field) {
     return null;
 }
 
+function validateNricChecksum(nric) {
+    const weights = [2, 7, 6, 5, 4, 3, 2];
+    const firstChar = nric[0].toUpperCase();
+    const lastChar = nric[8].toUpperCase();
+    const digits = nric.substring(1, 8).split('').map(Number);
+
+    let sum = 0;
+    for (let i = 0; i < 7; i++) {
+        sum += digits[i] * weights[i];
+    }
+
+    if (firstChar === 'T' || firstChar === 'G') {
+        sum += 4;
+    } else if (firstChar === 'M') {
+        sum += 3;
+    }
+
+    const remainder = sum % 11;
+    let expectedChar = '';
+
+    if (firstChar === 'S' || firstChar === 'T') {
+        const stMap = ['J', 'Z', 'J', 'A', 'H', 'D', 'E', 'G', 'C', 'B', 'F'];
+        expectedChar = stMap[remainder];
+    } else if (firstChar === 'F' || firstChar === 'G' || firstChar === 'M') {
+        const fgMap = ['X', 'W', 'U', 'T', 'R', 'Q', 'P', 'N', 'M', 'L', 'K'];
+        expectedChar = fgMap[remainder];
+    }
+
+    return lastChar === expectedChar;
+}
+
 function validateNricField(field) {
     const value = field.value.trim().toUpperCase();
     if (!value) return null;
@@ -164,6 +195,9 @@ function validateNricField(field) {
     }
     if (!/^[STFGM]\d{7}[A-Z]$/i.test(value)) {
         return 'Invalid format. NRIC/FIN should start with S, T, F, G, or M followed by 7 digits and 1 letter';
+    }
+    if (!validateNricChecksum(value)) {
+        return 'Invalid NRIC/FIN checksum. Please double-check your NRIC/FIN number';
     }
     return null;
 }
@@ -716,6 +750,5 @@ document.getElementById('onboardingForm').addEventListener('submit', function(e)
     }
 
     const payload = buildOnboardingPayload(data);
-    console.log('Form Data with computed fields:', payload);
     submitForm(payload, '/api/submit-onboarding');
 });
