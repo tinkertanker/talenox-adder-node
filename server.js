@@ -72,24 +72,11 @@ async function handleNetlifyStyle(handler, req, res, label) {
           value !== null &&
           value !== ''
         ) {
-          res.setHeader(key, value);
-        }
-      }
+    if (typeof result.body === 'string') {
+      res.status(result.statusCode).type('application/json').send(result.body);
+    } else {
+      res.status(result.statusCode).json(result.body);
     }
-
-    try {
-      const responseBody = typeof result.body === 'string'
-        ? JSON.parse(result.body)
-        : result.body;
-      res.status(result.statusCode).json(responseBody);
-    } catch (parseError) {
-      console.error(`Error parsing ${label} response body:`, parseError);
-      res.status(500).json({
-        success: false,
-        message: 'Invalid response format'
-      });
-    }
-  } catch (error) {
     console.error(`Error in ${label}:`, error);
     res.status(500).json({
       success: false,
