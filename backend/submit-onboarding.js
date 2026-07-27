@@ -3,7 +3,7 @@
 // Initialize Resend for email notifications
 const { Resend } = require('resend');
 
-// Helper function to redact sensitive data for logging
+// Helper function to redact sensitive data for logging (PDPA compliant)
 const redactSensitiveData = (data) => {
   if (data === null || data === undefined) return data;
   if (Array.isArray(data)) return data.map(redactSensitiveData);
@@ -12,7 +12,7 @@ const redactSensitiveData = (data) => {
   const redacted = {};
   for (const [key, value] of Object.entries(data)) {
     const lowerKey = key.toLowerCase();
-    if (lowerKey === 'nric' || lowerKey === 'ssn') {
+    if (lowerKey === 'nric' || lowerKey === 'ssn' || lowerKey === 'fin') {
       const text = String(value || '');
       redacted[key] = text ? `${text.slice(0, 1)}****${text.slice(-1)}` : value;
     } else if (
@@ -22,6 +22,8 @@ const redactSensitiveData = (data) => {
     ) {
       const text = String(value || '');
       redacted[key] = text ? `****${text.slice(-4)}` : value;
+    } else if (lowerKey === 'bank_account_attributes' && typeof value === 'object' && value !== null) {
+      redacted[key] = redactSensitiveData(value);
     } else {
       redacted[key] = redactSensitiveData(value);
     }
@@ -143,12 +145,24 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate,
       amount = 3000;
     }
     
-    // Convert dates to DD/MM/YYYY format as shown in API docs
+    // Convert dates to DD/MM/YYYY format in Asia/Singapore timezone
     const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+      }
       const date = new Date(dateStr);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
+      const formatter = new Intl.DateTimeFormat('en-SG', {
+        timeZone: 'Asia/Singapore',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const parts = formatter.formatToParts(date);
+      const day = parts.find(p => p.type === 'day').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const year = parts.find(p => p.type === 'year').value;
       return `${day}/${month}/${year}`;
     };
     
@@ -424,7 +438,7 @@ const transformForTalenox = async (formData) => {
       } else if (citizenshipStatus === 'sg_pr') {
         return 'Singapore PR';
       } else {
-        return 'Singapore Citizen'; // Default for full-timers
+        return 'Work Pass Holder'; // Fixed: foreign workers default to Work Pass Holder
       }
     }
     return 'Contract (No CPF, No SDL)'; // Default fallback

@@ -11,3 +11,7 @@ netlify.toml
 *.log
 docs/
 *.md
+test.html
+test-api.js
+test/
+*.test.js
