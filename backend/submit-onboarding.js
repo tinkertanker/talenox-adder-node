@@ -143,12 +143,24 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate,
       amount = 3000;
     }
     
-    // Convert dates to DD/MM/YYYY format as shown in API docs
+    // Convert dates to DD/MM/YYYY format in Asia/Singapore timezone
     const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+      }
       const date = new Date(dateStr);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
+      const formatter = new Intl.DateTimeFormat('en-SG', {
+        timeZone: 'Asia/Singapore',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const parts = formatter.formatToParts(date);
+      const day = parts.find(p => p.type === 'day').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const year = parts.find(p => p.type === 'year').value;
       return `${day}/${month}/${year}`;
     };
     
