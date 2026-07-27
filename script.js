@@ -535,18 +535,6 @@ function showSuccessMessage() {
 function buildOnboardingPayload(data) {
     const employeeType = data.employeeType;
 
-    if (employeeType === 'trainer' || employeeType === 'intern_school') {
-        data.immigrationStatus = 'Contract (No CPF, No SDL)';
-    } else if (employeeType === 'fulltime') {
-        if (data.nationality === 'sg_citizen') {
-            data.immigrationStatus = 'Singapore Citizen';
-        } else if (data.nationality === 'sg_pr') {
-            data.immigrationStatus = 'Singapore PR';
-        } else {
-            data.immigrationStatus = 'Work Pass Holder';
-        }
-    }
-
     if (employeeType === 'trainer') {
         data.jobTitle = 'Freelance Trainer';
     } else if (employeeType === 'intern_school') {
