@@ -523,11 +523,17 @@ function buildOnboardingPayload(data) {
         const lastMonth = new Date();
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         lastMonth.setDate(1);
-        data.startDate = lastMonth.toISOString().split('T')[0];
+        const y1 = lastMonth.getFullYear();
+        const m1 = String(lastMonth.getMonth() + 1).padStart(2, '0');
+        const d1 = String(lastMonth.getDate()).padStart(2, '0');
+        data.startDate = `${y1}-${m1}-${d1}`;
 
         const endDate = new Date(lastMonth);
         endDate.setDate(endDate.getDate() + 1);
-        data.endDate = endDate.toISOString().split('T')[0];
+        const y2 = endDate.getFullYear();
+        const m2 = String(endDate.getMonth() + 1).padStart(2, '0');
+        const d2 = String(endDate.getDate()).padStart(2, '0');
+        data.endDate = `${y2}-${m2}-${d2}`;
         data.basicSalary = 0;
     }
 
