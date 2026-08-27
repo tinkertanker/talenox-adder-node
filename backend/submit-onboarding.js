@@ -198,10 +198,10 @@ const createJobForEmployee = async (employeeId, formData, hiredDate, resignDate,
 const MAX_VALID_EMPLOYEE_ID = 10000;
 
 // Get next employee ID by querying existing employees
-const getNextEmployeeId = async () => {
+const getNextEmployeeId = async (formData) => {
   try {
-    // Fetch only recent employees to find the highest ID (faster)
-    const response = await fetch(`${process.env.TALENOX_API_URL}/employees?per=50&sort=-created_at`, {
+    // This list also prevents duplicate creation without relying on Talenox's error wording.
+    const response = await fetch(`${process.env.TALENOX_API_URL}/employees?per=1000&sort=-created_at`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.TALENOX_API_KEY}`,
@@ -212,10 +212,34 @@ const getNextEmployeeId = async () => {
     if (response.ok) {
       const employees = await response.json();
       console.log('Found', employees.length || 0, 'existing employees');
+
+      const normalizeName = (value) => String(value || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+      const normalizedEmail = String(formData.email || '').trim().toLowerCase();
+      const normalizedName = normalizeName(formData.fullName);
+      const existingEmployee = employees.find((employee) => {
+        const employeeName = employee.identification_full_name || [
+          employee.first_name,
+          employee.middle_name,
+          employee.last_name
+        ].filter(Boolean).join(' ');
+
+        return String(employee.email || '').trim().toLowerCase() === normalizedEmail &&
+          normalizeName(employeeName) === normalizedName;
+      });
+
+      if (existingEmployee) {
+        const duplicateError = new Error('An employee with these details is already registered in Talenox');
+        duplicateError.errorType = 'duplicate';
+        duplicateError.hrErrorType = 'Talenox API Error (duplicate)';
+        duplicateError.hrErrorDetails = 'An employee with this name and email is already registered in Talenox';
+        throw duplicateError;
+      }
       
       // Look for Employee ID field (not database ID) - try multiple field names
       let maxEmployeeId = 0;
-      const employeeIds = [];
       
       if (employees && employees.length > 0) {
         employees.forEach((emp, index) => {
@@ -234,7 +258,6 @@ const getNextEmployeeId = async () => {
           }
           
           if (foundId) {
-            employeeIds.push(foundId);
             const numericId = parseInt(foundId.toString().replace(/\D/g, ''), 10);
             if (!isNaN(numericId) && numericId > maxEmployeeId && numericId < MAX_VALID_EMPLOYEE_ID) { // Filter out large database IDs
               maxEmployeeId = numericId;
@@ -243,7 +266,6 @@ const getNextEmployeeId = async () => {
         });
       }
       
-      console.log('Found employee IDs:', employeeIds);
       console.log('Highest employee ID found:', maxEmployeeId);
       
       if (maxEmployeeId > 0) {
@@ -256,13 +278,16 @@ const getNextEmployeeId = async () => {
         return '301';
       }
     }
+
+    throw new Error(`Talenox employee lookup failed (Status: ${response.status})`);
   } catch (error) {
-    console.log('Could not fetch existing employees:', error.message);
+    if (error.errorType === 'duplicate') throw error;
+    console.error('Could not fetch existing employees:', error.message);
+    const lookupError = new Error('Could not retrieve existing employees from Talenox');
+    lookupError.hrErrorType = 'Talenox API Error (employee lookup)';
+    lookupError.hrErrorDetails = 'Could not check existing employees before creating the new profile';
+    throw lookupError;
   }
-  
-  // Fallback: start from 301
-  console.log('Fallback: starting from 301');
-  return '301';
 };
 
 const EMPLOYEE_TYPE_LABELS = {
@@ -326,8 +351,8 @@ This is an automated notification from the Tinkercademy onboarding system.
 const getFailureExplanation = (errorType) => {
   if (errorType === 'duplicate') {
     return {
-      summary: 'It looks like this person is already in the payroll system.',
-      nextSteps: 'Please do not resubmit the form. Reply to this email so HR can help from here.'
+      summary: 'Talenox reported that your details match an existing employee profile. No new account was created.',
+      nextSteps: 'HR has been notified and will check the existing profile. Please do not submit the form again. Reply to this email only if your details need to be updated.'
     };
   }
 
@@ -386,7 +411,9 @@ This is an automated message from the Tinkercademy onboarding system.
     const payload = {
       from: process.env.FROM_EMAIL || 'Tinkercademy Onboarding <hr.onboarding@tinkertanker.com>',
       replyTo: hrEmail,
-      subject: `Onboarding could not be completed: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
+      subject: employeeErrorType === 'duplicate'
+        ? `Already registered in Talenox: ${formData.fullName || 'Unknown'}`
+        : `Onboarding could not be completed: ${formData.fullName || 'Unknown'} (${employeeTypeText[formData.employeeType] || 'Unknown'})`,
       text: emailContent
     };
 
@@ -405,6 +432,44 @@ This is an automated message from the Tinkercademy onboarding system.
     }
   } catch (error) {
     console.error('Failed to send failure notification');
+  }
+};
+
+const classifyEmployeeCreationError = (_status, errorText) => {
+  const duplicatePatterns = [
+    /\bduplicate\b/,
+    /\balready\s+(?:exists?|registered|in use|(?:being\s+)?used|associated|linked)\b/,
+    /\bhas\s+(?:already\s+)?been\s+taken\b/,
+    /\bis\s+(?:already\s+)?(?:taken|in use|registered|associated|linked)\b/,
+    /\b(?:must be|is not)\s+unique\b/,
+    /\buniqueness\b/
+  ];
+
+  const hasDuplicateWording = (value) => {
+    const message = String(value || '').toLowerCase();
+    return duplicatePatterns.some((pattern) => pattern.test(message));
+  };
+  const identityField = /^(?:e_?mail|ssn|nric|identification(?:_?(?:number|full_?name))?)$/i;
+  const identityWording = /\b(?:e-?mail|ssn|nric|identification(?: number)?|employee profile)\b/i;
+
+  const containsIdentityDuplicate = (value, fieldName = '') => {
+    if (Array.isArray(value)) {
+      return value.some((item) => containsIdentityDuplicate(item, fieldName));
+    }
+    if (value && typeof value === 'object') {
+      return Object.entries(value).some(([key, item]) =>
+        containsIdentityDuplicate(item, key)
+      );
+    }
+
+    return hasDuplicateWording(value) &&
+      (identityField.test(fieldName) || identityWording.test(String(value || '')));
+  };
+
+  try {
+    return containsIdentityDuplicate(JSON.parse(errorText)) ? 'duplicate' : 'unknown';
+  } catch (error) {
+    return containsIdentityDuplicate(errorText) ? 'duplicate' : 'unknown';
   }
 };
 
@@ -460,7 +525,7 @@ const transformForTalenox = async (formData) => {
     resign_date: resignDate || null,
     birthdate: formData.dob,
     ssn: formData.nric,
-    employee_id: await getNextEmployeeId(),
+    employee_id: await getNextEmployeeId(formData),
     
     // Citizenship status based on employee type and citizenshipStatus
     citizenship: getCitizenshipStatus(formData.employeeType, formData.citizenshipStatus),
@@ -614,22 +679,10 @@ async function processOnboarding(formData, requestId) {
     if (!talenoxResponse.ok) {
       const errorText = await talenoxResponse.text();
       let errorMessage = 'Failed to create employee in Talenox';
-      let errorType = 'unknown';
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        
-        // Try to detect duplicate submissions based on common patterns
-        const errorString = JSON.stringify(errorData).toLowerCase();
-        if (errorString.includes('duplicate') || 
-            errorString.includes('already exist') || 
-            errorString.includes('has already been taken') ||
-            errorString.includes('unique')) {
-          errorType = 'duplicate';
-          errorMessage = 'This employee may already be registered';
-        }
-      } catch (e) {
-        // A non-JSON response is still classified without logging its body.
+      const errorType = classifyEmployeeCreationError(talenoxResponse.status, errorText);
+
+      if (errorType === 'duplicate') {
+        errorMessage = 'An employee with these details is already registered in Talenox';
       }
       
       const processingError = new Error(`${errorMessage} - ${errorType}`);
@@ -637,7 +690,7 @@ async function processOnboarding(formData, requestId) {
       processingError.hrErrorType = `Talenox API Error (${errorType})`;
       // Email-safe details only — raw Talenox body can echo NRIC/bank fields
       const safeEmailMessage = errorType === 'duplicate'
-        ? 'This employee may already be registered'
+        ? 'An employee with these details is already registered in Talenox'
         : 'Failed to create employee in Talenox';
       processingError.hrErrorDetails = `${safeEmailMessage} (Status: ${talenoxResponse.status})`;
       console.error(`[${requestId}] Talenox employee creation failed:`, {
@@ -706,5 +759,7 @@ exports._testing = {
   redactSensitiveData,
   sendEmailOrThrow,
   sendFailureNotification,
+  classifyEmployeeCreationError,
+  getNextEmployeeId,
   processOnboarding
 };

@@ -126,6 +126,111 @@ test('redaction covers Talenox SSN and nested bank account data', () => {
   });
 });
 
+test('Talenox field conflicts are classified as duplicate employees', () => {
+  const errorText = JSON.stringify({
+    errors: {
+      email: ['is already registered to another employee']
+    }
+  });
+
+  assert.equal(
+    submitOnboarding._testing.classifyEmployeeCreationError(400, errorText),
+    'duplicate'
+  );
+  assert.equal(
+    submitOnboarding._testing.classifyEmployeeCreationError(
+      400,
+      JSON.stringify({ errors: { hired_date: ['is invalid'] } })
+    ),
+    'unknown'
+  );
+  assert.equal(
+    submitOnboarding._testing.classifyEmployeeCreationError(
+      400,
+      JSON.stringify({ errors: { employee_id: ['has already been taken'] } })
+    ),
+    'unknown'
+  );
+  assert.equal(
+    submitOnboarding._testing.classifyEmployeeCreationError(
+      400,
+      JSON.stringify({
+        errors: {
+          email: ['is invalid'],
+          employee_id: ['has already been taken']
+        }
+      })
+    ),
+    'unknown'
+  );
+});
+
+test('duplicate employee email explains that HR will check the existing profile', async () => {
+  const resend = makeResendClient([
+    { data: { id: 'email-1' }, error: null }
+  ]);
+
+  await submitOnboarding._testing.sendFailureNotification(
+    formData,
+    {
+      employeeErrorType: 'duplicate',
+      hrErrorType: 'Talenox API Error (duplicate)',
+      hrErrorDetails: 'An employee with these details is already registered in Talenox'
+    },
+    resend
+  );
+
+  assert.equal(resend.calls.length, 1);
+  assert.match(resend.calls[0].subject, /Already registered in Talenox/);
+  assert.match(resend.calls[0].text, /No new account was created/);
+  assert.match(resend.calls[0].text, /HR has been notified and will check the existing profile/);
+  assert.match(resend.calls[0].text, /Please do not submit the form again/);
+});
+
+test('an exact existing name and email match stops employee creation as a duplicate', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => [{
+      id: 9876,
+      employee_id: '432',
+      first_name: '  ALEX   TAN ',
+      email: 'Alex@Example.com'
+    }]
+  });
+
+  try {
+    await assert.rejects(
+      submitOnboarding._testing.getNextEmployeeId(formData),
+      (error) => {
+        assert.equal(error.errorType, 'duplicate');
+        assert.equal(error.hrErrorType, 'Talenox API Error (duplicate)');
+        return true;
+      }
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('employee-list failures stop onboarding instead of falling back to employee ID 301', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: false,
+    status: 503
+  });
+
+  try {
+    await assert.rejects(
+      submitOnboarding._testing.getNextEmployeeId(formData),
+      /Could not retrieve existing employees from Talenox/
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('a Talenox employee-creation failure never logs its response body', async () => {
   const sentinelNric = 'S7654321Z';
   const sentinelAccount = '9988776655';
